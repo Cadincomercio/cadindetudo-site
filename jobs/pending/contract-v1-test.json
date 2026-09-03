@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "publish": false,
+  "product": {
+    "source_url": "https://www.mercadolivre.com.br/kit-2-pares-manguito-uv50-ciclismo-corrida-preto-cadin/up/MLBU4459473906?pdp_filters=seller_id%3A1546564144&wid=MLB7258804540",
+    "title": "Kit 2 Pares Manguito UV50 Ciclismo Corrida Preto Cadin",
+    "description": "Teste técnico do contrato v1.",
+    "image_url": "",
+    "canonical_url": "https://www.mercadolivre.com.br/kit-2-pares-manguito-uv50-ciclismo-corrida-preto-cadin/up/MLBU4459473906?pdp_filters=seller_id%3A1546564144&wid=MLB7258804540",
+    "item_id": "MLB7258804540"
+  },
+  "pages": [
+    {
+      "slug": "teste-contrato-v1",
+      "heading": "Teste do contrato v1 da automação SEO",
+      "meta_description": "Teste interno do novo contrato estruturado entre o GPT e o publicador automático da Cadin de Tudo.",
+      "intro": "Este conteúdo existe somente para validar o formato do job e não deve ser publicado como uma landing page do site.",
+      "why": "O teste confirma que o GPT pode usar os campos novos do contrato sem depender do formato legado utilizado na primeira prova de conceito.",
+      "observe": "Como publish está definido como false, o publicador deve validar o arquivo e encerrar sem gravar a página no site.",
+      "faq_q": "Este teste cria uma página pública?",
+      "faq_a": "Não. O campo publish está falso, portanto o job é validado sem gerar uma landing page pública."
+    }
+  ]
+}

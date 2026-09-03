@@ -8,74 +8,115 @@
   <meta name="robots" content="noindex,nofollow">
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f5f5f5; color: #222; line-height: 1.6; }
-    header { background: #fff; border-bottom: 1px solid #ddd; padding: 18px 20px; }
-    .wrap { max-width: 900px; margin: auto; }
-    .brand { font-size: 23px; font-weight: 700; }
-    main { max-width: 900px; margin: 28px auto; padding: 0 18px; }
-    .card { background: #fff; border-radius: 14px; padding: 30px; margin-bottom: 20px; }
-    h1 { margin: 0 0 16px; font-size: 34px; line-height: 1.15; }
-    h2 { margin-top: 0; font-size: 23px; }
-    h3 { margin-bottom: 8px; font-size: 18px; }
-    .lead { font-size: 18px; }
-    .product-image { display: block; width: 100%; max-height: 440px; object-fit: contain; margin: 22px auto; border-radius: 12px; background: #fafafa; }
-    .chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
-    .chip { padding: 14px; border-radius: 9px; background: #f4f4f4; font-weight: 700; }
-    .cta { display: block; margin-top: 18px; padding: 17px 20px; background: #222; color: #fff; text-align: center; text-decoration: none; border-radius: 9px; font-size: 17px; font-weight: 700; }
-    .small { margin-top: 10px; font-size: 14px; color: #666; }
-    .facts { margin: 0; padding-left: 22px; }
-    .facts li { margin-bottom: 8px; }
-    .practical-block { border-top: 1px solid #eee; padding-top: 14px; margin-top: 14px; }
-    .practical-block:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
-    footer { padding: 24px 18px 40px; text-align: center; color: #666; font-size: 14px; }
-    @media (max-width: 620px) {
-      .card { padding: 22px 18px; }
-      h1 { font-size: 28px; }
-      .lead { font-size: 17px; }
-      .chips { grid-template-columns: 1fr; }
-    }
+    :root { --ink:#183126; --muted:#607067; --brand:#1f7a4d; --brand-dark:#155b39; --accent:#f0b429; --soft:#eef7f1; --line:#dce7df; --white:#fff; }
+    body { margin:0; font-family:Arial,Helvetica,sans-serif; background:#f4f7f5; color:var(--ink); line-height:1.62; }
+    header { background:var(--white); border-bottom:1px solid var(--line); padding:16px 20px; position:sticky; top:0; z-index:10; }
+    .wrap { max-width:1080px; margin:auto; }
+    .brand { font-size:22px; font-weight:800; color:var(--brand-dark); }
+    main { max-width:1080px; margin:26px auto; padding:0 18px; }
+    .hero { background:linear-gradient(135deg,#e9f7ee 0%,#fff7dc 100%); border:1px solid var(--line); border-radius:22px; padding:34px; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr); gap:30px; align-items:center; box-shadow:0 12px 32px rgba(18,63,39,.07); }
+    .eyebrow { display:inline-block; background:var(--white); color:var(--brand-dark); border:1px solid var(--line); border-radius:999px; padding:7px 12px; font-size:13px; font-weight:800; margin-bottom:13px; }
+    h1 { margin:0 0 14px; font-size:42px; line-height:1.1; letter-spacing:-.5px; }
+    h2 { margin-top:0; font-size:27px; line-height:1.2; }
+    h3 { margin-bottom:8px; font-size:19px; }
+    .lead { font-size:19px; color:#334b3f; margin-bottom:10px; }
+    .hero-subtitle { font-size:16px; color:var(--muted); margin:0 0 20px; }
+    .hero-visual { min-height:290px; display:flex; align-items:center; justify-content:center; }
+    .product-image,.context-image { display:block; width:100%; max-height:390px; object-fit:contain; border-radius:18px; background:var(--white); border:1px solid var(--line); padding:16px; }
+    .visual-theme { width:100%; min-height:280px; border-radius:18px; border:1px solid var(--line); background:radial-gradient(circle at 30% 25%,#fff8d8,transparent 32%),linear-gradient(145deg,#dff4e6,#f7fbf8); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:28px; }
+    .visual-theme .icon { font-size:54px; margin-bottom:10px; }
+    .visual-theme strong { font-size:20px; }
+    .visual-theme span { color:var(--muted); margin-top:7px; }
+    .cta-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+    .cta { display:inline-flex; align-items:center; justify-content:center; min-height:52px; padding:14px 19px; border-radius:10px; font-size:16px; font-weight:800; text-decoration:none; transition:transform .15s ease; }
+    .cta:hover { transform:translateY(-1px); }
+    .cta-primary { background:var(--brand); color:var(--white); box-shadow:0 7px 16px rgba(31,122,77,.2); }
+    .cta-secondary { background:var(--white); color:var(--brand-dark); border:1px solid #b9d2c2; }
+    .small { margin-top:9px; font-size:13px; color:var(--muted); }
+    .section { background:var(--white); border:1px solid var(--line); border-radius:18px; padding:30px; margin-top:20px; box-shadow:0 7px 20px rgba(20,57,36,.04); }
+    .benefits { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; margin:20px 0 0; }
+    .benefit { padding:18px; border-radius:14px; background:var(--soft); border:1px solid #d5eadc; font-weight:800; }
+    .benefit::before { content:'✓'; display:inline-flex; align-items:center; justify-content:center; width:25px; height:25px; border-radius:50%; background:var(--brand); color:white; margin-right:8px; }
+    .chips { display:flex; flex-wrap:wrap; gap:9px; margin:18px 0; }
+    .chip { padding:9px 12px; border-radius:999px; background:#fff7dc; border:1px solid #f2dc90; font-weight:700; font-size:14px; }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .facts { margin:12px 0 0; padding-left:22px; }
+    .facts li { margin-bottom:9px; }
+    .practical-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .practical-block { border:1px solid var(--line); background:#fbfdfc; padding:20px; border-radius:14px; }
+    .mid-cta { background:var(--brand-dark); color:white; border-radius:18px; padding:26px; margin-top:20px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
+    .mid-cta h2 { margin:0 0 5px; color:white; }
+    .mid-cta p { margin:0; color:#dceee4; }
+    .mid-cta .cta { flex:0 0 auto; background:var(--accent); color:#2c291a; }
+    .faq-item { border-top:1px solid var(--line); padding:16px 0; }
+    .faq-item:first-child { border-top:0; padding-top:0; }
+    .faq-item h3 { margin-top:0; }
+    .closing { text-align:center; background:linear-gradient(135deg,#163e2a,#1f7a4d); color:white; }
+    .closing h2 { color:white; }
+    .closing p { color:#e6f3eb; max-width:760px; margin:0 auto 18px; }
+    .closing .cta-row { justify-content:center; }
+    .closing .cta-primary { background:var(--accent); color:#2c291a; }
+    .closing .cta-secondary { background:white; color:var(--brand-dark); }
+    footer { padding:28px 18px 42px; text-align:center; color:var(--muted); font-size:14px; }
+    @media (max-width:800px) { .hero{grid-template-columns:1fr}.benefits{grid-template-columns:1fr 1fr}.two-col,.practical-grid{grid-template-columns:1fr}.mid-cta{display:block}.mid-cta .cta{margin-top:16px;width:100%} }
+    @media (max-width:540px) { .hero{padding:24px 18px}h1{font-size:32px}.benefits{grid-template-columns:1fr}.section{padding:23px 18px}.cta{width:100%} }
   </style>
 </head>
 <body data-product="MLB7273066334" data-page="npk-04-14-08-para-que-serve" data-destination="https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614">
 <header><div class="wrap brand">Cadin de Tudo</div></header>
-
 <main>
-  <section class="card">
-    <h1>NPK 04-14-08: para que serve e quando escolher essa fórmula</h1>
-    <p class="lead">Quem pesquisa NPK 04-14-08 normalmente quer entender se a fórmula combina com a fase da planta antes de comprar. A numeração identifica a proporção N-P-K e, nesta combinação, o segundo número aparece em proporção maior.</p>
-
-    
-    
-
-    <a class="cta" data-cadin-cta="mercado-livre" href="https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614" target="_blank" rel="noopener">VER PREÇO E ESTOQUE NO MERCADO LIVRE →</a>
-    <div class="small">Preço, disponibilidade e prazo de entrega são informados diretamente no Mercado Livre.</div>
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Guia de compra • Cadin de Tudo</div>
+      <h1>NPK 04-14-08: para que serve e quando escolher essa fórmula</h1>
+      <p class="lead">Quem pesquisa NPK 04-14-08 normalmente quer entender se a fórmula combina com a fase da planta antes de comprar. A numeração identifica a proporção N-P-K e, nesta combinação, o segundo número aparece em proporção maior.</p>
+      <p class="hero-subtitle">Entenda a proposta da fórmula NPK 04-14-08, veja como ela se relaciona às finalidades anunciadas e avance para a oferta de 1 kg com os principais pontos de compra claros.</p>
+      <div class="chips"><div class="chip">NPK 04-14-08</div><div class="chip">Conteúdo de 1 kg</div><div class="chip">Plantio citado no anúncio</div><div class="chip">Flores e frutos citados no anúncio</div></div>
+      <div class="cta-row">
+        <a class="cta cta-primary" data-cadin-cta="mercado-livre" href="https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614" target="_blank" rel="noopener">COMPRAR AGORA NO MERCADO LIVRE</a>
+        <a class="cta cta-secondary" data-cadin-cta="mercado-livre" href="https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614" target="_blank" rel="noopener">VER PREÇO E ENTREGA</a>
+      </div>
+      <div class="small">Preço, disponibilidade e prazo de entrega são informados diretamente no Mercado Livre.</div>
+    </div>
+    <div class="hero-visual"><div class="visual-theme"><div class="icon">🌿</div><strong>Contexto de uso</strong><span>Contexto visual de jardinagem com vasos, flores e frutos, destacando a fórmula NPK 04-14-08 e a referência de 1 kg, sem marca, dosagem ou promessa adicional.</span></div></div>
   </section>
 
-  <section class="card">
-    <h2>Por que esta opção pode fazer sentido?</h2>
-    <p>Essa relação ajuda a explicar por que a fórmula 04-14-08 aparece com frequência em buscas ligadas a plantio, desenvolvimento radicular, flores e frutos. O anúncio desta oferta também a apresenta justamente para plantio, flores e frutos.</p>
+  <section class="section"><h2>Principais pontos para sua decisão</h2><div class="benefits"><div class="benefit">Fórmula NPK 04-14-08 identificada na oferta</div><div class="benefit">Embalagem de 1 kg para planejar a compra</div><div class="benefit">Anúncio direcionado a plantio, flores e frutos</div><div class="benefit">Orientação para conferir dose e indicação no rótulo</div></div><div class="cta-row"><a class="cta cta-primary" data-cadin-cta="mercado-livre" href="https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614" target="_blank" rel="noopener">COMPRAR AGORA NO MERCADO LIVRE</a></div></section>
+
+  <section class="section two-col">
+    <div><h2>Por que esta opção pode fazer sentido?</h2><p>Essa relação ajuda a explicar por que a fórmula 04-14-08 aparece com frequência em buscas ligadas a plantio, desenvolvimento radicular, flores e frutos. O anúncio desta oferta também a apresenta justamente para plantio, flores e frutos.</p></div>
+    <div><h2>O que observar antes de escolher</h2><p>Antes da compra, confira no rótulo a indicação para a espécie cultivada, a forma de aplicação e a dose recomendada. Não trate uma dose encontrada para outro fabricante como regra universal para esta oferta.</p><ul class="facts"><li>Confirmar a espécie ou cultura no rótulo</li><li>Verificar dose e frequência do fabricante</li><li>Checar se a finalidade desejada é plantio, flores ou frutos</li><li>Comparar a fórmula com a necessidade atual da planta</li></ul></div>
   </section>
 
-  <section class="card">
-    <h2>O que observar antes de escolher</h2>
-    <p>Antes da compra, confira no rótulo a indicação para a espécie cultivada, a forma de aplicação e a dose recomendada. Não trate uma dose encontrada para outro fabricante como regra universal para esta oferta.</p>
-    
+  <section class="mid-cta">
+    <div><h2>Quer conferir a oferta?</h2><p>Veja preço, disponibilidade e entrega diretamente no anúncio do Mercado Livre.</p></div>
+    <a class="cta" data-cadin-cta="mercado-livre" href="https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614" target="_blank" rel="noopener">VER PREÇO E ENTREGA</a>
   </section>
 
-  
+  <section class="section"><h2>Onde esta solução se encaixa</h2><div class="visual-theme"><div class="icon">🔎</div><strong>Aplicação pesquisada</strong><span>Contexto visual de jardinagem com vasos, flores e frutos, destacando a fórmula NPK 04-14-08 e a referência de 1 kg, sem marca, dosagem ou promessa adicional.</span></div></section>
+  <section class="section"><h2>Orientações práticas</h2><div class="practical-grid"><div class="practical-block"><h3>Leia a fórmula antes de decidir</h3><p>A sequência 04-14-08 permite comparar a proporção declarada de nitrogênio, fósforo e potássio com outras fórmulas NPK. Use essa informação como ponto de partida e confira a indicação do rótulo antes de aplicar.</p></div><div class="practical-block"><h3>Confirme a aplicação desta oferta</h3><p>O anúncio apresenta o produto para plantio, flores e frutos, mas espécie, dose e frequência não devem ser presumidas. Abra a oferta, confira o rótulo e use as instruções do fabricante como referência de aplicação.</p></div></div><div class="cta-row"><a class="cta cta-secondary" data-cadin-cta="mercado-livre" href="https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614" target="_blank" rel="noopener">VER PREÇO E ENTREGA</a></div></section>
 
-  <section class="card">
-    <h2>O que significa 04-14-08 no fertilizante NPK?</h2>
-    <p>Os três números representam as proporções declaradas de nitrogênio, fósforo e potássio na fórmula NPK. Para uso prático, siga sempre as instruções do rótulo do produto adquirido.</p>
+  <section class="section">
+    <h2>Dúvidas frequentes</h2>
+    <div class="faq-item"><h3>O que significa 04-14-08 no fertilizante NPK?</h3><p>Os três números representam as proporções declaradas de nitrogênio, fósforo e potássio na fórmula NPK. Para uso prático, siga sempre as instruções do rótulo do produto adquirido.</p></div><div class="faq-item"><h3>Esta oferta contém 1 kg de fertilizante?</h3><p>Sim. O título da oferta informa uma embalagem de 1 kg do fertilizante NPK 04-14-08.</p></div><div class="faq-item"><h3>O NPK 04-14-08 serve igualmente para qualquer planta?</h3><p>Não é seguro assumir isso. A oferta cita plantio, flores e frutos, mas a indicação para cada espécie, a dose e a frequência devem ser confirmadas no rótulo.</p></div>
   </section>
 
-  <section class="card">
+  <section class="section">
     <h2>Sobre esta oferta</h2>
     <p>Oferta de adubo/fertilizante NPK 04-14-08 em embalagem de 1 kg, apresentada no anúncio para plantio, flores e frutos.</p>
     <p><strong>Produto anunciado:</strong> Adubo Fertilizante NPK 04-14-08 1 kg para plantio, flores e frutos</p>
+    <div class="cta-row"><a class="cta cta-primary" data-cadin-cta="mercado-livre" href="https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614" target="_blank" rel="noopener">COMPRAR AGORA NO MERCADO LIVRE</a></div>
+  </section>
+
+  <section class="section closing">
+    <h2>Pronto para conferir o produto?</h2>
+    <p>Se a sua busca é pela fórmula NPK 04-14-08 em embalagem de 1 kg para uma das finalidades anunciadas, consulte a oferta e confirme no rótulo a adequação à sua planta antes da aplicação.</p>
+    <div class="cta-row">
+      <a class="cta cta-primary" data-cadin-cta="mercado-livre" href="https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614" target="_blank" rel="noopener">COMPRAR AGORA NO MERCADO LIVRE</a>
+      <a class="cta cta-secondary" data-cadin-cta="mercado-livre" href="https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614" target="_blank" rel="noopener">VER PREÇO E ENTREGA</a>
+    </div>
   </section>
 </main>
-
 <footer>© Cadin de Tudo — Guias de produtos e aplicações.</footer>
 <script src="/assets/tracking.js" defer></script>
 </body>

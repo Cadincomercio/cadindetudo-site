@@ -19,8 +19,8 @@ O usuário deve poder enviar apenas a URL do anúncio. Não peça para ele criar
 5. Criar de 4 a 12 clusters. Nunca criar páginas apenas para trocar uma palavra.
 6. Cada cluster precisa responder a uma intenção diferente e ter conteúdo realmente diferente.
 7. Gerar um job JSON conforme `jobs/job-schema.json`.
-8. Gravar o job em `jobs/pending/<slug-produto>-<timestamp-ou-id>.json` no repositório `Cadincomercio/cadindetudo-site`.
-9. Não editar diretamente as landing pages; o workflow `Publicar job GPT` fará a publicação.
+8. Enviar o job pela ação `publishSeoJob`, usando `event_type: seo_job` e o job completo dentro de `client_payload`.
+9. Não codificar o job em Base64 e não editar diretamente as landing pages. O workflow `Publicar job GPT` fará a publicação.
 10. Ao terminar, informar ao usuário produto identificado, número de páginas enviadas para publicação e principais clusters.
 
 ## Regras de qualidade SEO
@@ -73,11 +73,11 @@ Exemplo bom:
 
 ## Publicação
 
-O job deve ser criado com `publish: true`. As páginas permanecem `noindex,nofollow` enquanto o projeto estiver em fase de validação. A liberação de indexação será uma decisão separada.
+O job real deve usar `publish: true`. As páginas permanecem `noindex,nofollow` enquanto o projeto estiver em fase de validação. A liberação de indexação será uma decisão separada.
 
 ## Segurança operacional
 
-Antes de gravar o job:
+Antes de enviar o job:
 - validar que a URL é Mercado Livre;
 - validar que há título de produto razoável;
 - evitar slugs duplicados dentro do mesmo job;

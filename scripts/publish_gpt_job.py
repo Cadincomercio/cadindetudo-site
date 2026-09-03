@@ -118,6 +118,7 @@ def validate(job: dict) -> None:
         validate_string_list(page.get("candidate_terms"), f"pages[{slug}].candidate_terms", max_items=20, min_items=1)
         validate_string_list(page.get("highlights"), f"pages[{slug}].highlights")
         validate_string_list(page.get("checklist"), f"pages[{slug}].checklist")
+        validate_string_list(page.get("benefit_cards"), f"pages[{slug}].benefit_cards", max_items=6)
 
         blocks = page.get("practical_blocks")
         if blocks is not None:
@@ -128,6 +129,16 @@ def validate(job: dict) -> None:
                     raise ValueError(f"practical_blocks inválido em {slug}")
                 if not str(block.get("title") or "").strip() or not str(block.get("body") or "").strip():
                     raise ValueError(f"practical_blocks incompleto em {slug}")
+
+        faqs = page.get("faqs")
+        if faqs is not None:
+            if not isinstance(faqs, list) or len(faqs) > 4:
+                raise ValueError(f"faqs inválido em {slug}")
+            for faq in faqs:
+                if not isinstance(faq, dict):
+                    raise ValueError(f"faqs inválido em {slug}")
+                if not str(faq.get("question") or "").strip() or not str(faq.get("answer") or "").strip():
+                    raise ValueError(f"faqs incompleto em {slug}")
 
 
 def list_html(items: list[str], css_class: str = "facts") -> str:
@@ -144,6 +155,13 @@ def highlights_html(items: list[str]) -> str:
     return f'<div class="chips">{chips}</div>'
 
 
+def benefit_section_html(items: list[str]) -> str:
+    if not items:
+        return ""
+    cards = "".join(f'<div class="benefit">{esc(item)}</div>' for item in items)
+    return '<section class="section"><h2>Principais pontos para sua decisão</h2><div class="benefits">' + cards + '</div><div class="cta-row"><a class="cta cta-primary" data-cadin-cta="mercado-livre" href="{{ML_URL}}" target="_blank" rel="noopener">{{CTA_PRIMARY}}</a></div></section>'
+
+
 def practical_blocks_html(blocks: list[dict]) -> str:
     if not blocks:
         return ""
@@ -155,17 +173,43 @@ def practical_blocks_html(blocks: list[dict]) -> str:
             f'<p>{esc(block.get("body"))}</p>'
             '</div>'
         )
-    return '<section class="card"><h2>Informações práticas</h2>' + "".join(inner) + '</section>'
+    return '<section class="section"><h2>Orientações práticas</h2><div class="practical-grid">' + "".join(inner) + '</div><div class="cta-row"><a class="cta cta-secondary" data-cadin-cta="mercado-livre" href="{{ML_URL}}" target="_blank" rel="noopener">{{CTA_SECONDARY}}</a></div></section>'
 
 
-def image_html(product: dict) -> str:
+def faqs_html(page: dict) -> str:
+    faqs = page.get("faqs") or []
+    if not faqs:
+        faqs = [{"question": page.get("faq_q"), "answer": page.get("faq_a")}]
+    parts = []
+    for faq in faqs:
+        parts.append(
+            '<div class="faq-item">'
+            f'<h3>{esc(faq.get("question"))}</h3>'
+            f'<p>{esc(faq.get("answer"))}</p>'
+            '</div>'
+        )
+    return "".join(parts)
+
+
+def hero_visual_html(product: dict, page: dict) -> str:
     image = str(product.get("image_url") or "").strip()
-    if not image:
-        return ""
-    return (
-        f'<img class="product-image" src="{esc(image, quote=True)}" '
-        f'alt="{esc(product.get("title"), quote=True)}" onerror="this.style.display=\'none\'">'
-    )
+    if image:
+        return (
+            f'<img class="product-image" src="{esc(image, quote=True)}" '
+            f'alt="{esc(product.get("title"), quote=True)}" onerror="this.style.display=\'none\'">'
+        )
+    theme = str(page.get("image_theme") or page.get("search_intent") or product.get("title") or "").strip()
+    return '<div class="visual-theme"><div class="icon">🌿</div><strong>Contexto de uso</strong><span>' + esc(theme) + '</span></div>'
+
+
+def context_visual_html(page: dict) -> str:
+    image = str(page.get("context_image_url") or "").strip()
+    theme = str(page.get("image_theme") or "").strip()
+    if image:
+        return '<section class="section"><h2>Visualize esta aplicação</h2><img class="context-image" src="' + esc(image, quote=True) + '" alt="' + esc(theme or "Aplicação do produto", quote=True) + '" onerror="this.closest(\'section\').style.display=\'none\'"></section>'
+    if theme:
+        return '<section class="section"><h2>Onde esta solução se encaixa</h2><div class="visual-theme"><div class="icon">🔎</div><strong>Aplicação pesquisada</strong><span>' + esc(theme) + '</span></div></section>'
+    return ""
 
 
 def render(template: str, product: dict, page: dict) -> str:
@@ -177,22 +221,33 @@ def render(template: str, product: dict, page: dict) -> str:
     if highlights is None:
         highlights = product.get("highlights") or []
 
+    benefit_cards = page.get("benefit_cards") or highlights or []
+    hero_subtitle = str(page.get("hero_subtitle") or page.get("search_intent") or page.get("intro") or "").strip()
+    closing_text = str(page.get("closing_text") or description).strip()
+    cta_primary = str(page.get("cta_primary_label") or "COMPRAR AGORA NO MERCADO LIVRE").strip()
+    cta_secondary = str(page.get("cta_secondary_label") or "VER PREÇO E ENTREGA").strip()
+
     replacements = {
         "{{TITLE}}": esc(f"{page['heading']} | Cadin de Tudo"),
         "{{META_DESCRIPTION}}": esc(page["meta_description"]),
         "{{H1}}": esc(page["heading"]),
         "{{INTRO}}": esc(page["intro"]),
-        "{{IMAGE_HTML}}": image_html(product),
+        "{{HERO_SUBTITLE}}": esc(hero_subtitle),
+        "{{HERO_VISUAL_HTML}}": hero_visual_html(product, page),
         "{{HIGHLIGHTS_HTML}}": highlights_html(highlights),
+        "{{BENEFIT_SECTION_HTML}}": benefit_section_html(benefit_cards),
         "{{PRODUCT_TITLE}}": esc(product["title"]),
         "{{ML_URL}}": esc(product["canonical_url"], quote=True),
         "{{WHY}}": esc(page["why"]),
         "{{OBSERVE}}": esc(page["observe"]),
         "{{CHECKLIST_HTML}}": list_html(page.get("checklist") or []),
+        "{{CONTEXT_VISUAL_HTML}}": context_visual_html(page),
         "{{PRACTICAL_BLOCKS_HTML}}": practical_blocks_html(page.get("practical_blocks") or []),
-        "{{FAQ_Q}}": esc(page["faq_q"]),
-        "{{FAQ_A}}": esc(page["faq_a"]),
+        "{{FAQS_HTML}}": faqs_html(page),
         "{{PRODUCT_DESCRIPTION}}": esc(description),
+        "{{CLOSING_TEXT}}": esc(closing_text),
+        "{{CTA_PRIMARY}}": esc(cta_primary),
+        "{{CTA_SECONDARY}}": esc(cta_secondary),
         "{{TRACK_PRODUCT}}": esc(product.get("item_id") or product["title"], quote=True),
         "{{TRACK_PAGE}}": esc(page["slug"], quote=True),
         "{{TRACK_DESTINATION}}": esc(product["canonical_url"], quote=True),

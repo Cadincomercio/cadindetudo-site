@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "publish": false,
+  "product": {
+    "source_url": "https://www.mercadolivre.com.br/",
+    "title": "Produto ficticio para validacao generica",
+    "description": "Produto ficticio usado apenas para validar o contrato generico do Cadin SEO Engine.",
+    "image_url": "",
+    "canonical_url": "https://www.mercadolivre.com.br/",
+    "item_id": "TEST-GENERIC-001",
+    "highlights": ["Destaque confirmado A", "Destaque confirmado B"]
+  },
+  "pages": [
+    {
+      "slug": "teste-generico-cadin",
+      "heading": "Pagina generica de validacao do Cadin SEO Engine",
+      "meta_description": "Teste tecnico do contrato generico com destaques, checklist e blocos praticos sem publicar uma pagina real.",
+      "intro": "Este conteúdo fictício existe apenas para validar que o novo contrato aceita páginas genéricas sem depender de atributos específicos de qualquer produto.",
+      "why": "O teste confirma que informações de destaque e orientação prática passam a vir do job estruturado, e não de frases fixas gravadas no template HTML.",
+      "observe": "A validação deve aceitar os campos opcionais, manter o modo noindex do template e não criar nenhuma landing page porque publish está definido como false.",
+      "faq_q": "Este teste cria uma página pública no site?",
+      "faq_a": "Não. O job usa publish false e serve somente para validar o contrato e o workflow sem gerar conteúdo público.",
+      "highlights": ["Característica específica do teste", "Sem conteúdo hardcoded"],
+      "checklist": ["Confirmar que o job é validado", "Confirmar que nenhuma landing page é criada", "Confirmar compatibilidade com os novos campos"],
+      "practical_blocks": [
+        {
+          "title": "Como o teste funciona",
+          "body": "O workflow recebe o JSON, valida os campos enriquecidos e encerra antes da gravação de páginas porque a propriedade publish está definida como false."
+        }
+      ]
+    }
+  ]
+}

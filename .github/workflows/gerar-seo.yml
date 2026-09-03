@@ -1,0 +1,65 @@
+name: Gerar paginas SEO
+
+on:
+  workflow_dispatch:
+    inputs:
+      ml_url:
+        description: "URL do anuncio do Mercado Livre"
+        required: true
+        type: string
+      max_pages:
+        description: "Quantidade maxima de paginas candidatas"
+        required: false
+        default: "10"
+        type: string
+      publish:
+        description: "Publicar alteracoes no repositorio"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Gerar paginas
+        env:
+          ML_URL: ${{ inputs.ml_url }}
+          MAX_PAGES: ${{ inputs.max_pages }}
+          SITE_URL: https://cadindetudo.com
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python scripts/generate_seo.py \
+            --url "$ML_URL" \
+            --max-pages "$MAX_PAGES"
+
+      - name: Mostrar alteracoes
+        run: git status --short
+
+      - name: Publicar no repositorio
+        if: ${{ inputs.publish == true }}
+        run: |
+          if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            echo "Nenhuma alteracao para publicar."
+            exit 0
+          fi
+
+          git config user.name "Cadin SEO Engine"
+          git config user.email "actions@users.noreply.github.com"
+          git add .
+          git commit -m "SEO: gera paginas a partir de anuncio Mercado Livre"
+          git push

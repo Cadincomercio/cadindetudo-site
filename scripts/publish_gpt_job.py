@@ -253,8 +253,9 @@ def render(template: str, product: dict, page: dict) -> str:
         "{{TRACK_DESTINATION}}": esc(product["canonical_url"], quote=True),
     }
     output = template
-    for needle, value in replacements.items():
-        output = output.replace(needle, value)
+    for _ in range(2):
+        for needle, value in replacements.items():
+            output = output.replace(needle, value)
     return output
 
 

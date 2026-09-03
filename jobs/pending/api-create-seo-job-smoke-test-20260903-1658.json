@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "publish": false,
+  "product": {
+    "source_url": "https://www.mercadolivre.com.br/",
+    "title": "Teste de integracao createSeoJob",
+   "description": "Job de teste tecnico para validar a operacao createSeoJob sem publicar conteudo.",
+   "image_url": "",
+    "canonical_url": "https://www.mercadolivre.com.br/",
+    "item_id": "test-20260903-1658"
+  },
+  "pages": [
+    {
+      "slug": "teste-integracao-createseojob",
+      "heading": "Teste de integracao createSeoJob",
+      "meta_description": "Pagina tecnica de teste para validar o fluxo de criacao de jobs SEO sem publicacao.",
+      "intro": "Este conteudo existe apenas para validar tecnicamente o envio de um job pela operacao createSeoJob sem ativar a publicacao.",
+      "why": "A finalidade e confirmar que a integracao com o repositorio recebe objetos nov ormato esperado, sem gerar destinos SEO reais.",
+      "observe": "O job esta com publish false e nao representa um produto real do catalogo.",
+      "faq_q": "Este job publica alguma pagina S

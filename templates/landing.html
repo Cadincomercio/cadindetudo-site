@@ -16,6 +16,7 @@
     .card { background: #fff; border-radius: 14px; padding: 30px; margin-bottom: 20px; }
     h1 { margin: 0 0 16px; font-size: 34px; line-height: 1.15; }
     h2 { margin-top: 0; font-size: 23px; }
+    h3 { margin-bottom: 8px; font-size: 18px; }
     .lead { font-size: 18px; }
     .product-image { display: block; width: 100%; max-height: 440px; object-fit: contain; margin: 22px auto; border-radius: 12px; background: #fafafa; }
     .chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
@@ -24,6 +25,8 @@
     .small { margin-top: 10px; font-size: 14px; color: #666; }
     .facts { margin: 0; padding-left: 22px; }
     .facts li { margin-bottom: 8px; }
+    .practical-block { border-top: 1px solid #eee; padding-top: 14px; margin-top: 14px; }
+    .practical-block:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
     footer { padding: 24px 18px 40px; text-align: center; color: #666; font-size: 14px; }
     @media (max-width: 620px) {
       .card { padding: 22px 18px; }
@@ -33,7 +36,7 @@
     }
   </style>
 </head>
-<body>
+<body data-product="{{TRACK_PRODUCT}}" data-page="{{TRACK_PAGE}}" data-destination="{{TRACK_DESTINATION}}">
 <header><div class="wrap brand">Cadin de Tudo</div></header>
 
 <main>
@@ -41,32 +44,25 @@
     <h1>{{H1}}</h1>
     <p class="lead">{{INTRO}}</p>
 
-    <img class="product-image" src="{{IMAGE_URL}}" alt="{{PRODUCT_TITLE}}" onerror="this.style.display='none'">
+    {{IMAGE_HTML}}
+    {{HIGHLIGHTS_HTML}}
 
-    <div class="chips">
-      <div class="chip">Proteção solar UV50+</div>
-      <div class="chip">Modelo com abertura para polegar</div>
-    </div>
-
-    <a class="cta" href="{{ML_URL}}" target="_blank" rel="noopener">VER PREÇO E ESTOQUE NO MERCADO LIVRE →</a>
+    <a class="cta" data-cadin-cta="mercado-livre" href="{{ML_URL}}" target="_blank" rel="noopener">VER PREÇO E ESTOQUE NO MERCADO LIVRE →</a>
     <div class="small">Preço, disponibilidade e prazo de entrega são informados diretamente no Mercado Livre.</div>
   </section>
 
   <section class="card">
-    <h2>Por que esse formato faz sentido {{INTENT_PHRASE}}?</h2>
+    <h2>Por que esta opção pode fazer sentido?</h2>
     <p>{{WHY}}</p>
   </section>
 
   <section class="card">
     <h2>O que observar antes de escolher</h2>
     <p>{{OBSERVE}}</p>
-    <ul class="facts">
-      <li>cobertura adequada do braço e de parte da mão;</li>
-      <li>abertura para o polegar sem impedir os movimentos dos dedos;</li>
-      <li>tecido leve e flexível para uso prolongado;</li>
-      <li>quantidade de pares compatível com a rotina de uso.</li>
-    </ul>
+    {{CHECKLIST_HTML}}
   </section>
+
+  {{PRACTICAL_BLOCKS_HTML}}
 
   <section class="card">
     <h2>{{FAQ_Q}}</h2>
@@ -81,5 +77,6 @@
 </main>
 
 <footer>© Cadin de Tudo — Guias de produtos e aplicações.</footer>
+<script src="/assets/tracking.js" defer></script>
 </body>
 </html>

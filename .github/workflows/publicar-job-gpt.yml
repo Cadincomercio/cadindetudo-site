@@ -1,0 +1,70 @@
+name: Publicar job GPT
+
+on:
+  push:
+    paths:
+      - "jobs/pending/*.json"
+  workflow_dispatch:
+    inputs:
+      job_path:
+        description: "Caminho do job JSON, ex.: jobs/pending/manguito.json"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Descobrir jobs
+        id: jobs
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "files=${{ inputs.job_path }}" >> "$GITHUB_OUTPUT"
+          else
+            FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" -- 'jobs/pending/*.json' | tr '\n' ' ')
+            echo "files=$FILES" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publicar páginas
+        env:
+          SITE_URL: https://cadindetudo.com
+        run: |
+          FILES="${{ steps.jobs.outputs.files }}"
+          if [ -z "$FILES" ]; then
+            echo "Nenhum job pendente encontrado."
+            exit 0
+          fi
+          for JOB in $FILES; do
+            echo "Publicando $JOB"
+            python scripts/publish_gpt_job.py --job "$JOB"
+            mkdir -p jobs/processed
+            NAME=$(basename "$JOB")
+            cp "$JOB" "jobs/processed/$NAME"
+            rm "$JOB"
+          done
+
+      - name: Commitar publicação
+        run: |
+          if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            echo "Nenhuma alteração para publicar."
+            exit 0
+          fi
+          git config user.name "Cadin SEO Engine"
+          git config user.email "actions@users.noreply.github.com"
+          git add .
+          git commit -m "SEO: publica job gerado pelo GPT"
+          git push

@@ -13,7 +13,8 @@ SITEMAP = ROOT / "sitemap.xml"
 SITE_URL = os.getenv("SITE_URL", "https://cadindetudo.com").rstrip("/")
 
 REQUIRED_PAGE_FIELDS = {
-    "slug", "heading", "meta_description", "intro", "why", "observe", "faq_q", "faq_a"
+    "slug", "heading", "meta_description", "intro", "why", "observe",
+    "faq_q", "faq_a", "search_intent", "candidate_terms"
 }
 
 
@@ -40,15 +41,20 @@ def normalize(job: dict) -> dict:
         "publish": bool(job.get("publish", True)),
         "product_key": job.get("product_key") or "",
         "product": product,
+        "research": job.get("research"),
         "pages": pages,
     }
 
 
-def validate_string_list(value: object, field_name: str, max_items: int = 8) -> None:
+def validate_string_list(value: object, field_name: str, max_items: int = 8, min_items: int = 0) -> None:
     if value is None:
+        if min_items:
+            raise ValueError(f"{field_name} é obrigatório")
         return
     if not isinstance(value, list):
         raise ValueError(f"{field_name} precisa ser uma lista")
+    if len(value) < min_items:
+        raise ValueError(f"{field_name} precisa ter ao menos {min_items} itens")
     if len(value) > max_items:
         raise ValueError(f"{field_name} excede o máximo de {max_items} itens")
     for item in value:
@@ -58,6 +64,7 @@ def validate_string_list(value: object, field_name: str, max_items: int = 8) -> 
 
 def validate(job: dict) -> None:
     product = job["product"]
+    research = job["research"]
     pages = job["pages"]
 
     if job["version"] != 1:
@@ -74,6 +81,13 @@ def validate(job: dict) -> None:
         raise ValueError("product.canonical_url precisa apontar para Mercado Livre")
 
     validate_string_list(product.get("highlights"), "product.highlights")
+
+    if not isinstance(research, dict):
+        raise ValueError("research é obrigatório antes da publicação")
+    validate_string_list(research.get("queries"), "research.queries", max_items=30, min_items=2)
+    validate_string_list(research.get("candidate_terms"), "research.candidate_terms", max_items=80, min_items=4)
+    if len(str(research.get("notes") or "").strip()) < 30:
+        raise ValueError("research.notes precisa resumir a pesquisa realizada")
 
     if not isinstance(pages, list) or not pages:
         raise ValueError("pages precisa ter ao menos uma página")
@@ -99,6 +113,9 @@ def validate(job: dict) -> None:
         if len(meta) < 30 or len(meta) > 180:
             raise ValueError(f"meta_description fora do limite em {slug}")
 
+        if len(str(page.get("search_intent") or "").strip()) < 10:
+            raise ValueError(f"search_intent insuficiente em {slug}")
+        validate_string_list(page.get("candidate_terms"), f"pages[{slug}].candidate_terms", max_items=20, min_items=1)
         validate_string_list(page.get("highlights"), f"pages[{slug}].highlights")
         validate_string_list(page.get("checklist"), f"pages[{slug}].checklist")
 

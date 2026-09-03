@@ -20,6 +20,17 @@ export async function onRequestOptions() {
   });
 }
 
+function extractJob(payload) {
+  if (payload && typeof payload.job_json === 'string') {
+    try {
+      return JSON.parse(payload.job_json);
+    } catch (_) {
+      throw new Error('job_json não contém JSON válido');
+    }
+  }
+  return payload;
+}
+
 export async function onRequestPost(context) {
   const customHeader = String(context.request.headers.get('x-cadin-secret') || '').trim();
   const authorization = String(context.request.headers.get('authorization') || '').trim();
@@ -32,16 +43,22 @@ export async function onRequestPost(context) {
     return jsonResponse({ ok: false, error: 'CADIN_API_SECRET não configurado' }, 500);
   }
 
-  const authorized = customHeader === expected || bearerHeader === expected;
-  if (!authorized) {
+  if (customHeader !== expected && bearerHeader !== expected) {
     return jsonResponse({ ok: false, error: 'Não autorizado' }, 401);
+  }
+
+  let payload;
+  try {
+    payload = await context.request.json();
+  } catch (_) {
+    return jsonResponse({ ok: false, error: 'JSON inválido' }, 400);
   }
 
   let job;
   try {
-    job = await context.request.json();
-  } catch (_) {
-    return jsonResponse({ ok: false, error: 'JSON inválido' }, 400);
+    job = extractJob(payload);
+  } catch (err) {
+    return jsonResponse({ ok: false, error: err.message }, 422);
   }
 
   const required = ['version', 'publish', 'product', 'research', 'pages'];

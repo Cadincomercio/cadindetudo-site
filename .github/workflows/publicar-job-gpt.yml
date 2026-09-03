@@ -1,6 +1,8 @@
 name: Publicar job GPT
 
 on:
+  repository_dispatch:
+    types: [seo_job]
   push:
     paths:
       - "jobs/pending/*.json"
@@ -28,11 +30,31 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Preparar job recebido pelo GPT
+        if: ${{ github.event_name == 'repository_dispatch' }}
+        env:
+          JOB_JSON: ${{ toJson(github.event.client_payload) }}
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, re, time
+          payload = json.loads(os.environ['JOB_JSON'])
+          name = str(payload.get('job_name') or payload.get('product', {}).get('title') or 'produto')
+          slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')[:70] or 'produto'
+          path = pathlib.Path('jobs/pending') / f'{slug}-{int(time.time())}.json'
+          path.parent.mkdir(parents=True, exist_ok=True)
+          payload.pop('job_name', None)
+          path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          pathlib.Path('/tmp/cadin_job_path').write_text(str(path), encoding='utf-8')
+          print(path)
+          PY
+
       - name: Descobrir jobs
         id: jobs
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "files=$(cat /tmp/cadin_job_path)" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "files=${{ inputs.job_path }}" >> "$GITHUB_OUTPUT"
           else
             FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" -- 'jobs/pending/*.json' | tr '\n' ' ')

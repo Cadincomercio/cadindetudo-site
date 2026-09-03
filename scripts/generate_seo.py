@@ -6,8 +6,9 @@ import json
 import os
 import re
 import sys
+import urllib.parse
 import urllib.request
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
@@ -31,6 +32,7 @@ class Product:
     image: str
     canonical_url: str
     slug_base: str
+    item_id: str = ""
 
 
 CLUSTER_PATTERNS = [
@@ -60,11 +62,65 @@ def slugify(value: str) -> str:
     return value.strip("-") or "produto"
 
 
-def fetch_html(url: str) -> str:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+def request_text(url: str) -> str:
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.7",
+            "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
+        },
+    )
     with urllib.request.urlopen(req, timeout=25) as response:
         charset = response.headers.get_content_charset() or "utf-8"
         return response.read().decode(charset, errors="replace")
+
+
+def request_json(url: str) -> dict:
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=25) as response:
+        return json.loads(response.read().decode("utf-8", errors="replace"))
+
+
+def extract_item_id(url: str) -> str:
+    parsed = urllib.parse.urlsplit(url)
+    query = urllib.parse.parse_qs(parsed.query)
+    for key in ("wid", "item_id"):
+        values = query.get(key, [])
+        if values:
+            match = re.search(r"MLB\d+", values[0], flags=re.I)
+            if match:
+                return match.group(0).upper()
+
+    match = re.search(r"MLB[-_]?([0-9]{6,})", url, flags=re.I)
+    if match:
+        return "MLB" + match.group(1)
+    return ""
+
+
+def title_from_url(url: str) -> str:
+    path = urllib.parse.urlsplit(url).path.strip("/")
+    first = path.split("/")[0] if path else ""
+    first = urllib.parse.unquote(first)
+    words = first.replace("-", " ").strip()
+    if not words:
+        return "Produto Mercado Livre"
+    return " ".join(word.upper() if word.lower() in {"uv50", "npk"} else word.capitalize() for word in words.split())
+
+
+def clean_destination_url(url: str, item_id: str = "") -> str:
+    parsed = urllib.parse.urlsplit(url)
+    query = urllib.parse.parse_qs(parsed.query)
+    kept: list[tuple[str, str]] = []
+    for key in ("pdp_filters", "wid"):
+        for value in query.get(key, []):
+            kept.append((key, value))
+    if item_id and not any(k == "wid" for k, _ in kept):
+        kept.append(("wid", item_id))
+    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(kept), ""))
 
 
 def extract_meta(page: str, key: str) -> str:
@@ -81,22 +137,81 @@ def extract_meta(page: str, key: str) -> str:
     return ""
 
 
-def extract_title(page: str) -> str:
+def extract_html_title(page: str) -> str:
     for key in ("og:title", "twitter:title"):
         value = extract_meta(page, key)
         if value:
             return value
     match = re.search(r"<title[^>]*>(.*?)</title>", page, flags=re.I | re.S)
-    return html.unescape(re.sub(r"\s+", " ", match.group(1))).strip() if match else "Produto Mercado Livre"
+    return html.unescape(re.sub(r"\s+", " ", match.group(1))).strip() if match else ""
+
+
+def product_from_api(url: str, item_id: str) -> Product | None:
+    if not item_id:
+        return None
+    try:
+        data = request_json(f"https://api.mercadolibre.com/items/{item_id}")
+    except Exception as exc:
+        print(f"API Mercado Livre indisponível para {item_id}: {exc}", file=sys.stderr)
+        return None
+
+    title = str(data.get("title") or "").strip()
+    if not title:
+        return None
+
+    pictures = data.get("pictures") or []
+    image = ""
+    if pictures and isinstance(pictures[0], dict):
+        image = str(pictures[0].get("secure_url") or pictures[0].get("url") or "")
+
+    permalink = str(data.get("permalink") or "").strip()
+    attributes = []
+    for attr in data.get("attributes") or []:
+        if not isinstance(attr, dict):
+            continue
+        name = str(attr.get("name") or "").strip()
+        value = str(attr.get("value_name") or "").strip()
+        if name and value and value.lower() not in {"não informado", "nao informado", "n/a"}:
+            attributes.append(f"{name}: {value}")
+        if len(attributes) >= 5:
+            break
+
+    description = ". ".join(attributes)
+    base = slugify(re.sub(r"\b(kit|par|pares|preto|cadin|uv50\+?)\b", " ", title, flags=re.I))
+    return Product(
+        source_url=url,
+        title=title,
+        description=description,
+        image=image,
+        canonical_url=permalink or clean_destination_url(url, item_id),
+        slug_base=base[:70].rstrip("-"),
+        item_id=item_id,
+    )
 
 
 def extract_product(url: str) -> Product:
-    page = fetch_html(url)
-    title = extract_title(page)
-    description = extract_meta(page, "description") or extract_meta(page, "og:description")
-    image = extract_meta(page, "og:image") or extract_meta(page, "twitter:image")
-    canonical = extract_meta(page, "og:url") or url
+    item_id = extract_item_id(url)
+    api_product = product_from_api(url, item_id)
+    if api_product:
+        return api_product
+
+    page = ""
+    try:
+        page = request_text(url)
+    except Exception as exc:
+        print(f"Página do anúncio não pôde ser lida: {exc}", file=sys.stderr)
+
+    html_title = extract_html_title(page) if page else ""
+    generic_titles = {"mercado libre", "mercado livre", "mercadolivre", "produto mercado livre"}
+    title = html_title.strip()
+    if not title or title.lower() in generic_titles:
+        title = title_from_url(url)
+
+    description = extract_meta(page, "description") or extract_meta(page, "og:description") if page else ""
+    image = extract_meta(page, "og:image") or extract_meta(page, "twitter:image") if page else ""
+    canonical = clean_destination_url(url, item_id)
     base = slugify(re.sub(r"\b(kit|par|pares|preto|cadin|uv50\+?)\b", " ", title, flags=re.I))
+
     return Product(
         source_url=url,
         title=title,
@@ -104,25 +219,23 @@ def extract_product(url: str) -> Product:
         image=image,
         canonical_url=canonical,
         slug_base=base[:70].rstrip("-"),
+        item_id=item_id,
     )
 
 
 def infer_clusters(product: Product, max_pages: int) -> list[dict]:
     title_l = product.title.lower()
-    clusters = []
-
     if "manguito" in title_l:
-        for slug, phrase, heading in CLUSTER_PATTERNS[:max_pages]:
-            clusters.append({"slug": f"manguito-{slug}", "phrase": phrase, "heading": heading})
-    else:
-        # Fallback seguro: não inventa dezenas de páginas para produto desconhecido.
-        clusters.append({
-            "slug": product.slug_base,
-            "phrase": "guia de compra",
-            "heading": product.title,
-        })
+        return [
+            {"slug": f"manguito-{slug}", "phrase": phrase, "heading": heading}
+            for slug, phrase, heading in CLUSTER_PATTERNS[:max_pages]
+        ]
 
-    return clusters[:max_pages]
+    return [{
+        "slug": product.slug_base,
+        "phrase": "guia de compra",
+        "heading": product.title,
+    }]
 
 
 def render_template(template: str, product: Product, cluster: dict) -> str:
@@ -154,10 +267,7 @@ def generate_pages(product: Product, clusters: Iterable[dict]) -> list[str]:
         slug = cluster["slug"]
         page_dir = ROOT / slug
         page_dir.mkdir(parents=True, exist_ok=True)
-        (page_dir / "index.html").write_text(
-            render_template(template, product, cluster),
-            encoding="utf-8",
-        )
+        (page_dir / "index.html").write_text(render_template(template, product, cluster), encoding="utf-8")
         generated.append(slug)
     return generated
 
@@ -166,7 +276,8 @@ def build_sitemap(extra_slugs: Iterable[str]) -> None:
     urls = {DEFAULT_SITE_URL + "/"}
     for child in ROOT.iterdir():
         if child.is_dir() and (child / "index.html").exists() and not child.name.startswith("."):
-            urls.add(f"{DEFAULT_SITE_URL}/{child.name}/")
+            if child.name != "mercado-libre":
+                urls.add(f"{DEFAULT_SITE_URL}/{child.name}/")
     for slug in extra_slugs:
         urls.add(f"{DEFAULT_SITE_URL}/{slug}/")
 
@@ -174,10 +285,8 @@ def build_sitemap(extra_slugs: Iterable[str]) -> None:
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ]
-    for url in sorted(urls):
-        body.append("  <url>")
-        body.append(f"    <loc>{html.escape(url)}</loc>")
-        body.append("  </url>")
+    for page_url in sorted(urls):
+        body.extend(["  <url>", f"    <loc>{html.escape(page_url)}</loc>", "  </url>"])
     body.append("</urlset>")
     SITEMAP_PATH.write_text("\n".join(body) + "\n", encoding="utf-8")
 
@@ -197,6 +306,11 @@ def main() -> int:
 
     max_pages = min(max(args.max_pages, 1), 12)
     product = extract_product(args.url)
+
+    if product.title.lower() in {"mercado libre", "mercado livre"}:
+        print("Não foi possível identificar o produto com segurança; nada foi publicado.", file=sys.stderr)
+        return 3
+
     save_product(product)
     clusters = infer_clusters(product, max_pages=max_pages)
     slugs = generate_pages(product, clusters)
@@ -204,6 +318,8 @@ def main() -> int:
 
     print(json.dumps({
         "produto": product.title,
+        "item_id": product.item_id,
+        "imagem": bool(product.image),
         "paginas": slugs,
         "total": len(slugs),
     }, ensure_ascii=False, indent=2))

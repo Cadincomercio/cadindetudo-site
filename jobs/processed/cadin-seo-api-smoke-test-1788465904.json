@@ -1,0 +1,23 @@
+{
+  "pages": [
+    {
+      "faq_a": "A finalidade é verificar o funcionamento da operação publishSeoJob e o recebimento correto do payload estruturado.",
+      "faq_q": "Qual é a finalidade deste job de teste operacional?",
+      "heading": "Teste operacional do Cadin SEO Engine",
+      "intro": "Este conteúdo foi criado exclusivamente para validar o envio estruturado de um job pela integração automatizada do Cadin SEO Engine.",
+      "meta_description": "Página de teste operacional para validar o envio de jobs SEO pela integração automatizada da Cadin.",
+      "observe": "Este é um teste técnico de integração e não representa uma oferta específica nem uma recomendação de compra.",
+      "slug": "teste-operacional-cadin-seo",
+      "why": "A validação confirma que o payload segue o schema esperado e pode ser recebido pelo workflow responsável pelo processamento dos jobs SEO."
+    }
+  ],
+  "product": {
+    "canonical_url": "https://www.mercadolivre.com.br/",
+    "description": "Job de teste da integração publishSeoJob; nenhum produto específico foi fornecido pelo usuário.",
+    "image_url": "",
+    "source_url": "https://www.mercadolivre.com.br/",
+    "title": "Teste operacional Cadin SEO Engine"
+  },
+  "publish": true,
+  "version": 1
+}

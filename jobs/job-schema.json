@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Cadin SEO Job",
   "type": "object",
-  "required": ["version", "product", "pages", "publish"],
+  "required": ["version", "product", "research", "pages", "publish"],
   "properties": {
     "version": {"type": "integer", "const": 1},
     "publish": {"type": "boolean"},
@@ -24,13 +24,33 @@
       },
       "additionalProperties": false
     },
+    "research": {
+      "type": "object",
+      "required": ["queries", "candidate_terms", "notes"],
+      "properties": {
+        "queries": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 30,
+          "items": {"type": "string", "minLength": 3}
+        },
+        "candidate_terms": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 80,
+          "items": {"type": "string", "minLength": 3}
+        },
+        "notes": {"type": "string", "minLength": 30}
+      },
+      "additionalProperties": false
+    },
     "pages": {
       "type": "array",
       "minItems": 1,
       "maxItems": 12,
       "items": {
         "type": "object",
-        "required": ["slug", "heading", "meta_description", "intro", "why", "observe", "faq_q", "faq_a"],
+        "required": ["slug", "heading", "meta_description", "intro", "why", "observe", "faq_q", "faq_a", "search_intent", "candidate_terms"],
         "properties": {
           "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
           "heading": {"type": "string", "minLength": 5},
@@ -40,6 +60,13 @@
           "observe": {"type": "string", "minLength": 40},
           "faq_q": {"type": "string", "minLength": 10},
           "faq_a": {"type": "string", "minLength": 30},
+          "search_intent": {"type": "string", "minLength": 10},
+          "candidate_terms": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {"type": "string", "minLength": 3}
+          },
           "highlights": {
             "type": "array",
             "maxItems": 8,

@@ -14,21 +14,26 @@ export async function onRequestOptions() {
     headers: {
       'access-control-allow-origin': '*',
       'access-control-allow-methods': 'POST, OPTIONS',
-      'access-control-allow-headers': 'X-Cadin-Secret, Content-Type',
+      'access-control-allow-headers': 'X-Cadin-Secret, Authorization, Content-Type',
       'access-control-max-age': '86400',
     },
   });
 }
 
 export async function onRequestPost(context) {
-  const provided = String(context.request.headers.get('x-cadin-secret') || '').trim();
+  const customHeader = String(context.request.headers.get('x-cadin-secret') || '').trim();
+  const authorization = String(context.request.headers.get('authorization') || '').trim();
+  const bearerHeader = authorization.toLowerCase().startsWith('bearer ')
+    ? authorization.slice(7).trim()
+    : '';
   const expected = String(context.env?.CADIN_API_SECRET || '').trim();
 
   if (!expected) {
     return jsonResponse({ ok: false, error: 'CADIN_API_SECRET não configurado' }, 500);
   }
 
-  if (!provided || provided !== expected) {
+  const authorized = customHeader === expected || bearerHeader === expected;
+  if (!authorized) {
     return jsonResponse({ ok: false, error: 'Não autorizado' }, 401);
   }
 

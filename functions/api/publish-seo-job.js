@@ -14,21 +14,21 @@ export async function onRequestOptions() {
     headers: {
       'access-control-allow-origin': '*',
       'access-control-allow-methods': 'POST, OPTIONS',
-      'access-control-allow-headers': 'Authorization, Content-Type',
+      'access-control-allow-headers': 'X-Cadin-Secret, Content-Type',
       'access-control-max-age': '86400',
     },
   });
 }
 
 export async function onRequestPost(context) {
-  const auth = context.request.headers.get('authorization') || '';
+  const provided = String(context.request.headers.get('x-cadin-secret') || '').trim();
   const expected = String(context.env?.CADIN_API_SECRET || '').trim();
 
   if (!expected) {
     return jsonResponse({ ok: false, error: 'CADIN_API_SECRET não configurado' }, 500);
   }
 
-  if (auth !== `Bearer ${expected}`) {
+  if (!provided || provided !== expected) {
     return jsonResponse({ ok: false, error: 'Não autorizado' }, 401);
   }
 

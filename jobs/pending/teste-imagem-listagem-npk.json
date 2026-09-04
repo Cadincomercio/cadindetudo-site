@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "publish": false,
+  "product": {
+    "source_url": "https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614",
+    "canonical_url": "https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614",
+    "title": "Adubo Fertilizante Npk 04-14-08 1 Kg Plantio Flores E Frutos",
+    "item_id": "MLB7273066334",
+    "image_url": "",
+    "main_image_url": "",
+    "gallery_images": []
+  },
+  "research": {
+    "queries": ["teste imagem npk", "teste listagem mercado livre"],
+    "candidate_terms": ["npk 04-14-08", "adubo npk", "fertilizante npk", "plantio flores frutos"],
+    "notes": "Job técnico de validação do resolvedor de imagens pela listagem pública do Mercado Livre, sem publicar páginas reais."
+  },
+  "pages": [
+    {
+      "slug": "teste-imagem-listagem-npk",
+      "heading": "Teste técnico de imagem NPK 04-14-08",
+      "meta_description": "Teste técnico interno para validar a resolução de imagem pública do anúncio NPK 04-14-08 no Mercado Livre.",
+      "intro": "Este conteúdo existe somente para validar tecnicamente o resolvedor de imagens e não será publicado como página pública do site.",
+      "why": "O teste verifica se a listagem pública do Mercado Livre permite localizar o card exato pelo título e extrair a imagem real associada.",
+      "observe": "O job usa publish false e não deve criar ou alterar uma landing page pública durante a validação.",
+      "faq_q": "Este teste publica uma página real?",
+      "faq_a": "Não. O campo publish está definido como false e serve apenas para validar o pipeline técnico de imagens.",
+      "search_intent": "Validar tecnicamente a extração de imagem do card exato na listagem pública.",
+      "candidate_terms": ["teste imagem npk"]
+    }
+  ]
+}

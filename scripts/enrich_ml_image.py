@@ -26,36 +26,56 @@ def _request(url: str, *, accept: str = "application/json") -> bytes:
 
 
 def _valid_image_url(value: object) -> str:
-    url = str(value or "").strip()
+    url = str(value or "").strip().replace("\\/", "/")
     if not url.startswith("https://"):
         return ""
-    if "mlstatic.com" not in url and "mercadolibre" not in url:
+    host = urllib.parse.urlparse(url).netloc.lower()
+    if "mlstatic.com" not in host and "mercadolibre" not in host and "mercadolivre" not in host:
         return ""
     return url
 
 
-def _image_from_item_body(body: dict) -> str:
+def _dedupe(values: list[str], limit: int = 8) -> list[str]:
+    out = []
+    seen = set()
+    for value in values:
+        url = _valid_image_url(value)
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        out.append(url)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _images_from_item_body(body: dict) -> list[str]:
+    found = []
     pictures = body.get("pictures") or []
-    if pictures and isinstance(pictures[0], dict):
-        for field in ("secure_url", "url"):
-            candidate = _valid_image_url(pictures[0].get(field))
-            if candidate:
-                return candidate
+    if isinstance(pictures, list):
+        for picture in pictures:
+            if not isinstance(picture, dict):
+                continue
+            for field in ("secure_url", "url"):
+                candidate = _valid_image_url(picture.get(field))
+                if candidate:
+                    found.append(candidate)
+                    break
     for field in ("secure_thumbnail", "thumbnail"):
         candidate = _valid_image_url(body.get(field))
         if candidate:
-            return candidate
-    return ""
+            found.append(candidate)
+    return _dedupe(found)
 
 
-def image_from_items_api(item_id: str) -> str:
+def images_from_items_api(item_id: str) -> list[str]:
     if not re.fullmatch(r"MLB\d{6,}", item_id):
-        return ""
+        return []
     try:
         body = json.loads(_request(f"https://api.mercadolibre.com/items/{item_id}").decode("utf-8"))
-        return _image_from_item_body(body)
+        return _images_from_item_body(body)
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError):
-        return ""
+        return []
 
 
 def _seller_id_from_url(url: str) -> str:
@@ -72,13 +92,13 @@ def _seller_id_from_url(url: str) -> str:
     return ""
 
 
-def image_from_public_search(product: dict) -> str:
+def images_from_public_search(product: dict) -> list[str]:
     title = str(product.get("title") or "").strip()
     item_id = str(product.get("item_id") or "").strip()
     canonical = str(product.get("canonical_url") or product.get("source_url") or "")
     seller_id = _seller_id_from_url(canonical)
     if not title:
-        return ""
+        return []
 
     params = {"q": title, "limit": "50"}
     if seller_id:
@@ -87,79 +107,95 @@ def image_from_public_search(product: dict) -> str:
     try:
         body = json.loads(_request(url).decode("utf-8"))
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError):
-        return ""
+        return []
 
     results = body.get("results") or []
     if not isinstance(results, list):
-        return ""
+        return []
 
-    ordered = sorted(
-        [r for r in results if isinstance(r, dict)],
-        key=lambda r: 0 if str(r.get("id") or "") == item_id else 1,
-    )
-    for result in ordered:
-        candidate = _image_from_item_body(result)
-        if candidate:
-            return candidate
-    return ""
+    exact = [r for r in results if isinstance(r, dict) and str(r.get("id") or "") == item_id]
+    candidates = exact or [r for r in results if isinstance(r, dict)]
+    found = []
+    for result in candidates[:5]:
+        found.extend(_images_from_item_body(result))
+    return _dedupe(found)
 
 
-def image_from_product_page(url: str) -> str:
+def images_from_product_page(url: str) -> list[str]:
     if not url.startswith("https://") or "mercadolivre.com" not in url:
-        return ""
+        return []
     try:
         text = _request(url, accept="text/html,application/xhtml+xml").decode("utf-8", errors="ignore")
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
-        return ""
+        return []
 
+    found = []
     patterns = [
         r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)',
         r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
         r'"secure_url"\s*:\s*"(https:[^"\\]+)"',
         r'"url"\s*:\s*"(https:[^"\\]+mlstatic\.com[^"\\]+)"',
+        r'(https://[^"\'<>\\ ]+mlstatic\.com[^"\'<>\\ ]+)',
     ]
     for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
+        for match in re.finditer(pattern, text, re.IGNORECASE):
             candidate = html.unescape(match.group(1)).replace("\\/", "/")
             candidate = _valid_image_url(candidate)
             if candidate:
-                return candidate
-    return ""
+                found.append(candidate)
+    return _dedupe(found)
 
 
 def enrich(path: Path) -> bool:
     job = json.loads(path.read_text(encoding="utf-8"))
     product = job.get("product") or {}
 
-    if _valid_image_url(product.get("image_url")):
-        print("Imagem do produto já informada no job; nenhuma alteração necessária.")
-        return False
+    existing_main = _valid_image_url(product.get("main_image_url") or product.get("image_url"))
+    existing_gallery = _dedupe(product.get("gallery_images") or [])
 
     item_id = str(product.get("item_id") or "").strip()
-    image = image_from_items_api(item_id) if item_id else ""
-    if image:
-        print("Imagem resolvida via Items API.")
+    found = []
+    if item_id:
+        found = images_from_items_api(item_id)
+        if found:
+            print(f"Imagens resolvidas via Items API: {len(found)}")
 
-    if not image:
-        image = image_from_public_search(product)
-        if image:
-            print("Imagem resolvida via busca pública do Mercado Livre.")
+    if not found:
+        found = images_from_public_search(product)
+        if found:
+            print(f"Imagens resolvidas via busca pública do Mercado Livre: {len(found)}")
 
-    if not image:
+    if not found:
         page_url = str(product.get("canonical_url") or product.get("source_url") or "").strip()
-        image = image_from_product_page(page_url)
-        if image:
-            print("Imagem resolvida via metadados da página do produto.")
+        found = images_from_product_page(page_url)
+        if found:
+            print(f"Imagens resolvidas via metadados da página: {len(found)}")
 
-    if not image:
-        print("Não foi possível resolver uma imagem real e confiável; mantendo image_url vazio.")
+    combined = _dedupe(([existing_main] if existing_main else []) + existing_gallery + found)
+    if not combined:
+        print("Não foi possível resolver imagem real e confiável; mantendo campos de imagem vazios.")
         return False
 
-    product["image_url"] = image
+    main = existing_main or combined[0]
+    gallery = _dedupe([main] + combined)
+
+    changed = False
+    for field in ("main_image_url", "image_url"):
+        if product.get(field) != main:
+            product[field] = main
+            changed = True
+    if product.get("gallery_images") != gallery:
+        product["gallery_images"] = gallery
+        changed = True
+
+    if not changed:
+        print("As imagens do produto já estavam atualizadas.")
+        return False
+
     job["product"] = product
     path.write_text(json.dumps(job, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"Imagem real do produto resolvida: {image}")
+    print(f"Imagem principal: {main}")
+    print(f"Galeria: {len(gallery)} imagem(ns)")
     return True
 
 

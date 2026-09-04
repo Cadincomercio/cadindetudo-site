@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "publish": false,
+  "product": {
+    "source_url": "https://www.mercadolivre.com.br/teste",
+    "title": "Produto de teste",
+    "description": "Teste técnico retrocompatível de galeria.",
+    "image_url": "",
+    "canonical_url": "https://www.mercadolivre.com.br/teste",
+    "item_id": "MLB0000000000",
+    "gallery_images": []
+  },
+  "research": {
+    "queries": ["teste contrato galeria", "teste imagens produto"],
+    "candidate_terms": ["teste galeria", "imagem produto", "imagem principal", "mercado livre"],
+    "notes": "Teste técnico para validar o novo contrato de imagens sem publicar página real no site."
+  },
+  "pages": [
+    {
+      "slug": "teste-galeria-imagens",
+      "heading": "Teste de galeria de imagens",
+      "meta_description": "Teste técnico para validar suporte retrocompatível a imagem principal e galeria de imagens do produto.",
+      "intro": "Este conteúdo existe apenas para validar tecnicamente o novo suporte a imagem principal e galeria sem publicar uma página real.",
+      "why": "O teste garante que jobs antigos continuem válidos e que os novos campos opcionais de imagem não quebrem o pipeline existente.",
+      "observe": "Como publish está false, nenhuma landing page deve ser gravada durante este teste técnico do contrato.",
+      "faq_q": "Este teste publica uma página real?",
+      "faq_a": "Não. O teste usa publish false e serve somente para validar o pipeline e o contrato JSON atualizado.",
+      "search_intent": "Validar tecnicamente o contrato de galeria de imagens.",
+      "candidate_terms": ["teste galeria", "imagem produto"]
+    }
+  ]
+}

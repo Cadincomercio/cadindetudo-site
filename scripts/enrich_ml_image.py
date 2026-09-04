@@ -29,8 +29,21 @@ def _valid_image_url(value: object) -> str:
     url = str(value or "").strip().replace("\\/", "/")
     if not url.startswith("https://"):
         return ""
-    host = urllib.parse.urlparse(url).netloc.lower()
+    parsed = urllib.parse.urlparse(url)
+    host = parsed.netloc.lower()
+    path = parsed.path.lower()
     if "mlstatic.com" not in host and "mercadolibre" not in host and "mercadolivre" not in host:
+        return ""
+    blocked_fragments = (
+        "/frontend-assets/",
+        "suspicious-traffic",
+        "/navigation/",
+        "/polyfills/",
+        "/ui-navigation/",
+    )
+    if any(fragment in path for fragment in blocked_fragments):
+        return ""
+    if host.endswith("mlstatic.com") and not any(token in path for token in ("d_nq_", ".jpg", ".jpeg", ".png", ".webp", ".avif")):
         return ""
     return url
 
@@ -127,6 +140,10 @@ def images_from_product_page(url: str) -> list[str]:
     try:
         text = _request(url, accept="text/html,application/xhtml+xml").decode("utf-8", errors="ignore")
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
+        return []
+
+    low = text.lower()
+    if "suspicious-traffic" in low or "tráfego suspeito" in low or "trafego suspeito" in low:
         return []
 
     found = []

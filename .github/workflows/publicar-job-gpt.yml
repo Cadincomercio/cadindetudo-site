@@ -72,6 +72,7 @@ jobs:
           fi
           for JOB in $FILES; do
             echo "Publicando $JOB"
+            python scripts/enrich_ml_image.py --job "$JOB"
             python scripts/publish_gpt_job.py --job "$JOB"
             mkdir -p jobs/processed
             NAME=$(basename "$JOB")

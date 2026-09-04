@@ -6,13 +6,29 @@
     "canonical_url": "https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614",
     "title": "Adubo Fertilizante Npk 04-14-08 1 Kg Plantio Flores E Frutos",
     "item_id": "MLB7273066334",
-    "image_url": "",
-    "main_image_url": "",
-    "gallery_images": []
+    "image_url": "https://http2.mlstatic.com/D_Q_NP_2X_810823-MLB113931028108_072026-E--adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos.webp",
+    "main_image_url": "https://http2.mlstatic.com/D_Q_NP_2X_810823-MLB113931028108_072026-E--adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos.webp",
+    "gallery_images": [
+      "https://http2.mlstatic.com/D_Q_NP_2X_810823-MLB113931028108_072026-E--adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos.webp",
+      "https://http2.mlstatic.com/D_Q_NP_810823-MLB113931028108_072026-N--adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos.webp",
+      "https://http2.mlstatic.com/D_Q_NP_810823-MLB113931028108_072026-V--adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos.webp",
+      "https://http2.mlstatic.com/D_Q_NP_810823-MLB113931028108_072026-C--adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos.webp",
+      "https://http2.mlstatic.com/D_Q_NP_810823-MLB113931028108_072026-T--adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos.webp",
+      "https://http2.mlstatic.com/D_Q_NP_810823-MLB113931028108_072026-L--adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos.webp",
+      "https://http2.mlstatic.com/D_Q_NP_810823-MLB113931028108_072026-B--adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos.webp"
+    ]
   },
   "research": {
-    "queries": ["teste imagem npk", "teste listagem mercado livre"],
-    "candidate_terms": ["npk 04-14-08", "adubo npk", "fertilizante npk", "plantio flores frutos"],
+    "queries": [
+      "teste imagem npk",
+      "teste listagem mercado livre"
+    ],
+    "candidate_terms": [
+      "npk 04-14-08",
+      "adubo npk",
+      "fertilizante npk",
+      "plantio flores frutos"
+    ],
     "notes": "Job técnico de validação do resolvedor de imagens pela listagem pública do Mercado Livre, sem publicar páginas reais."
   },
   "pages": [
@@ -26,7 +42,9 @@
       "faq_q": "Este teste publica uma página real?",
       "faq_a": "Não. O campo publish está definido como false e serve apenas para validar o pipeline técnico de imagens.",
       "search_intent": "Validar tecnicamente a extração de imagem do card exato na listagem pública.",
-      "candidate_terms": ["teste imagem npk"]
+      "candidate_terms": [
+        "teste imagem npk"
+      ]
     }
   ]
 }

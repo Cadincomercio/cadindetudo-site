@@ -6,6 +6,7 @@ import json
 import os
 import re
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -33,24 +34,71 @@ def _valid_image_url(value: object) -> str:
     return url
 
 
-def image_from_items_api(item_id: str) -> str:
-    if not re.fullmatch(r"MLB\d{6,}", item_id):
-        return ""
-    url = f"https://api.mercadolibre.com/items/{item_id}"
-    try:
-        body = json.loads(_request(url).decode("utf-8"))
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError):
-        return ""
-
+def _image_from_item_body(body: dict) -> str:
     pictures = body.get("pictures") or []
     if pictures and isinstance(pictures[0], dict):
         for field in ("secure_url", "url"):
             candidate = _valid_image_url(pictures[0].get(field))
             if candidate:
                 return candidate
-
     for field in ("secure_thumbnail", "thumbnail"):
         candidate = _valid_image_url(body.get(field))
+        if candidate:
+            return candidate
+    return ""
+
+
+def image_from_items_api(item_id: str) -> str:
+    if not re.fullmatch(r"MLB\d{6,}", item_id):
+        return ""
+    try:
+        body = json.loads(_request(f"https://api.mercadolibre.com/items/{item_id}").decode("utf-8"))
+        return _image_from_item_body(body)
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError):
+        return ""
+
+
+def _seller_id_from_url(url: str) -> str:
+    try:
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+        seller = (query.get("pdp_filters") or query.get("seller_id") or [""])[0]
+        match = re.search(r"seller_id[:=](\d+)", seller)
+        if match:
+            return match.group(1)
+        if str(seller).isdigit():
+            return str(seller)
+    except Exception:
+        pass
+    return ""
+
+
+def image_from_public_search(product: dict) -> str:
+    title = str(product.get("title") or "").strip()
+    item_id = str(product.get("item_id") or "").strip()
+    canonical = str(product.get("canonical_url") or product.get("source_url") or "")
+    seller_id = _seller_id_from_url(canonical)
+    if not title:
+        return ""
+
+    params = {"q": title, "limit": "50"}
+    if seller_id:
+        params["seller_id"] = seller_id
+    url = "https://api.mercadolibre.com/sites/MLB/search?" + urllib.parse.urlencode(params)
+    try:
+        body = json.loads(_request(url).decode("utf-8"))
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError):
+        return ""
+
+    results = body.get("results") or []
+    if not isinstance(results, list):
+        return ""
+
+    ordered = sorted(
+        [r for r in results if isinstance(r, dict)],
+        key=lambda r: 0 if str(r.get("id") or "") == item_id else 1,
+    )
+    for result in ordered:
+        candidate = _image_from_item_body(result)
         if candidate:
             return candidate
     return ""
@@ -90,10 +138,19 @@ def enrich(path: Path) -> bool:
 
     item_id = str(product.get("item_id") or "").strip()
     image = image_from_items_api(item_id) if item_id else ""
+    if image:
+        print("Imagem resolvida via Items API.")
+
+    if not image:
+        image = image_from_public_search(product)
+        if image:
+            print("Imagem resolvida via busca pública do Mercado Livre.")
 
     if not image:
         page_url = str(product.get("canonical_url") or product.get("source_url") or "").strip()
         image = image_from_product_page(page_url)
+        if image:
+            print("Imagem resolvida via metadados da página do produto.")
 
     if not image:
         print("Não foi possível resolver uma imagem real e confiável; mantendo image_url vazio.")

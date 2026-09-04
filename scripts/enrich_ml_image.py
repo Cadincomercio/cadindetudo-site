@@ -35,22 +35,19 @@ def _valid_image_url(value: object) -> str:
     if "mlstatic.com" not in host and "mercadolibre" not in host and "mercadolivre" not in host:
         return ""
     blocked_fragments = (
-        "/frontend-assets/",
-        "suspicious-traffic",
-        "/navigation/",
-        "/polyfills/",
-        "/ui-navigation/",
+        "/frontend-assets/", "suspicious-traffic", "/navigation/", "/polyfills/",
+        "/ui-navigation/", "/fonts/", "/icons/", "/logos/", "/brand/",
     )
     if any(fragment in path for fragment in blocked_fragments):
         return ""
+    # Fotos de produto do CDN do Mercado Livre normalmente usam D_NQ_* ou extensão de imagem.
     if host.endswith("mlstatic.com") and not any(token in path for token in ("d_nq_", ".jpg", ".jpeg", ".png", ".webp", ".avif")):
         return ""
     return url
 
 
 def _dedupe(values: list[str], limit: int = 8) -> list[str]:
-    out = []
-    seen = set()
+    out, seen = [], set()
     for value in values:
         url = _valid_image_url(value)
         if not url or url in seen:
@@ -64,31 +61,68 @@ def _dedupe(values: list[str], limit: int = 8) -> list[str]:
 
 def _images_from_item_body(body: dict) -> list[str]:
     found = []
-    pictures = body.get("pictures") or []
-    if isinstance(pictures, list):
-        for picture in pictures:
-            if not isinstance(picture, dict):
-                continue
-            for field in ("secure_url", "url"):
-                candidate = _valid_image_url(picture.get(field))
-                if candidate:
-                    found.append(candidate)
-                    break
-    for field in ("secure_thumbnail", "thumbnail"):
+    for key in ("pictures", "images", "gallery"):
+        pictures = body.get(key) or []
+        if isinstance(pictures, list):
+            for picture in pictures:
+                if isinstance(picture, str):
+                    found.append(picture)
+                    continue
+                if not isinstance(picture, dict):
+                    continue
+                for field in ("secure_url", "url", "src", "secureUrl"):
+                    candidate = _valid_image_url(picture.get(field))
+                    if candidate:
+                        found.append(candidate)
+                        break
+    for field in ("secure_thumbnail", "thumbnail", "picture", "image"):
         candidate = _valid_image_url(body.get(field))
         if candidate:
             found.append(candidate)
+    # Alguns endpoints encapsulam dados do produto.
+    for field in ("product", "item", "data"):
+        nested = body.get(field)
+        if isinstance(nested, dict):
+            found.extend(_images_from_item_body(nested))
     return _dedupe(found)
+
+
+def _json_images(url: str) -> list[str]:
+    try:
+        body = json.loads(_request(url).decode("utf-8"))
+        return _images_from_item_body(body) if isinstance(body, dict) else []
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError):
+        return []
 
 
 def images_from_items_api(item_id: str) -> list[str]:
     if not re.fullmatch(r"MLB\d{6,}", item_id):
         return []
-    try:
-        body = json.loads(_request(f"https://api.mercadolibre.com/items/{item_id}").decode("utf-8"))
-        return _images_from_item_body(body)
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError):
+    return _json_images(f"https://api.mercadolibre.com/items/{item_id}")
+
+
+def _mlbu_from_product(product: dict) -> str:
+    for value in (product.get("source_url"), product.get("canonical_url")):
+        match = re.search(r"(?:/up/|\b)(MLBU\d{6,})", str(value or ""), re.I)
+        if match:
+            return match.group(1).upper()
+    return ""
+
+
+def images_from_public_product_ids(product: dict) -> list[str]:
+    """Tenta rotas públicas ligadas ao identificador MLBU sem autenticar conta do vendedor."""
+    mlbu = _mlbu_from_product(product)
+    if not mlbu:
         return []
+    endpoints = [
+        f"https://api.mercadolibre.com/products/{mlbu}",
+        f"https://api.mercadolibre.com/user-products/{mlbu}",
+    ]
+    for endpoint in endpoints:
+        images = _json_images(endpoint)
+        if images:
+            return images
+    return []
 
 
 def _seller_id_from_url(url: str) -> str:
@@ -112,7 +146,6 @@ def images_from_public_search(product: dict) -> list[str]:
     seller_id = _seller_id_from_url(canonical)
     if not title:
         return []
-
     params = {"q": title, "limit": "50"}
     if seller_id:
         params["seller_id"] = seller_id
@@ -121,15 +154,15 @@ def images_from_public_search(product: dict) -> list[str]:
         body = json.loads(_request(url).decode("utf-8"))
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError):
         return []
-
     results = body.get("results") or []
     if not isinstance(results, list):
         return []
-
     exact = [r for r in results if isinstance(r, dict) and str(r.get("id") or "") == item_id]
-    candidates = exact or [r for r in results if isinstance(r, dict)]
+    # Segurança: sem correspondência exata do item, não usar imagem de outro vendedor/produto.
+    if item_id and not exact:
+        return []
     found = []
-    for result in candidates[:5]:
+    for result in exact[:1] if exact else []:
         found.extend(_images_from_item_body(result))
     return _dedupe(found)
 
@@ -141,11 +174,9 @@ def images_from_product_page(url: str) -> list[str]:
         text = _request(url, accept="text/html,application/xhtml+xml").decode("utf-8", errors="ignore")
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
         return []
-
     low = text.lower()
     if "suspicious-traffic" in low or "tráfego suspeito" in low or "trafego suspeito" in low:
         return []
-
     found = []
     patterns = [
         r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)',
@@ -166,21 +197,25 @@ def images_from_product_page(url: str) -> list[str]:
 def enrich(path: Path) -> bool:
     job = json.loads(path.read_text(encoding="utf-8"))
     product = job.get("product") or {}
-
     existing_main = _valid_image_url(product.get("main_image_url") or product.get("image_url"))
     existing_gallery = _dedupe(product.get("gallery_images") or [])
-
     item_id = str(product.get("item_id") or "").strip()
     found = []
+
     if item_id:
         found = images_from_items_api(item_id)
         if found:
-            print(f"Imagens resolvidas via Items API: {len(found)}")
+            print(f"Imagens resolvidas via Items API pública: {len(found)}")
+
+    if not found:
+        found = images_from_public_product_ids(product)
+        if found:
+            print(f"Imagens resolvidas via identificador MLBU público: {len(found)}")
 
     if not found:
         found = images_from_public_search(product)
         if found:
-            print(f"Imagens resolvidas via busca pública do Mercado Livre: {len(found)}")
+            print(f"Imagens resolvidas via busca pública com correspondência exata: {len(found)}")
 
     if not found:
         page_url = str(product.get("canonical_url") or product.get("source_url") or "").strip()
@@ -190,12 +225,11 @@ def enrich(path: Path) -> bool:
 
     combined = _dedupe(([existing_main] if existing_main else []) + existing_gallery + found)
     if not combined:
-        print("Não foi possível resolver imagem real e confiável; mantendo campos de imagem vazios.")
+        print("Não foi possível resolver imagem real e confiável sem autenticação; mantendo campos vazios.")
         return False
 
     main = existing_main or combined[0]
     gallery = _dedupe([main] + combined)
-
     changed = False
     for field in ("main_image_url", "image_url"):
         if product.get(field) != main:
@@ -204,11 +238,9 @@ def enrich(path: Path) -> bool:
     if product.get("gallery_images") != gallery:
         product["gallery_images"] = gallery
         changed = True
-
     if not changed:
         print("As imagens do produto já estavam atualizadas.")
         return False
-
     job["product"] = product
     path.write_text(json.dumps(job, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Imagem principal: {main}")

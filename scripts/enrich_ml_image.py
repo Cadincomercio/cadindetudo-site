@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import html
 import json
 import os
 import re
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -13,7 +15,7 @@ from pathlib import Path
 
 def _request(url: str, *, accept: str = "application/json") -> bytes:
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; CadinSEO/1.0; +https://cadindetudo.com)",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0 Safari/537.36",
         "Accept": accept,
         "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.7",
     }
@@ -26,22 +28,21 @@ def _request(url: str, *, accept: str = "application/json") -> bytes:
 
 
 def _valid_image_url(value: object) -> str:
-    url = str(value or "").strip().replace("\\/", "/")
+    url = html.unescape(str(value or "").strip()).replace("\\/", "/")
     if not url.startswith("https://"):
         return ""
     parsed = urllib.parse.urlparse(url)
     host = parsed.netloc.lower()
     path = parsed.path.lower()
-    if "mlstatic.com" not in host and "mercadolibre" not in host and "mercadolivre" not in host:
+    if "mlstatic.com" not in host:
         return ""
-    blocked_fragments = (
+    blocked = (
         "/frontend-assets/", "suspicious-traffic", "/navigation/", "/polyfills/",
         "/ui-navigation/", "/fonts/", "/icons/", "/logos/", "/brand/",
     )
-    if any(fragment in path for fragment in blocked_fragments):
+    if any(fragment in path for fragment in blocked):
         return ""
-    # Fotos de produto do CDN do Mercado Livre normalmente usam D_NQ_* ou extensão de imagem.
-    if host.endswith("mlstatic.com") and not any(token in path for token in ("d_nq_", ".jpg", ".jpeg", ".png", ".webp", ".avif")):
+    if "d_nq_" not in path and not path.endswith((".jpg", ".jpeg", ".png", ".webp", ".avif")):
         return ""
     return url
 
@@ -79,7 +80,6 @@ def _images_from_item_body(body: dict) -> list[str]:
         candidate = _valid_image_url(body.get(field))
         if candidate:
             found.append(candidate)
-    # Alguns endpoints encapsulam dados do produto.
     for field in ("product", "item", "data"):
         nested = body.get(field)
         if isinstance(nested, dict):
@@ -110,15 +110,13 @@ def _mlbu_from_product(product: dict) -> str:
 
 
 def images_from_public_product_ids(product: dict) -> list[str]:
-    """Tenta rotas públicas ligadas ao identificador MLBU sem autenticar conta do vendedor."""
     mlbu = _mlbu_from_product(product)
     if not mlbu:
         return []
-    endpoints = [
+    for endpoint in (
         f"https://api.mercadolibre.com/products/{mlbu}",
         f"https://api.mercadolibre.com/user-products/{mlbu}",
-    ]
-    for endpoint in endpoints:
+    ):
         images = _json_images(endpoint)
         if images:
             return images
@@ -158,13 +156,103 @@ def images_from_public_search(product: dict) -> list[str]:
     if not isinstance(results, list):
         return []
     exact = [r for r in results if isinstance(r, dict) and str(r.get("id") or "") == item_id]
-    # Segurança: sem correspondência exata do item, não usar imagem de outro vendedor/produto.
     if item_id and not exact:
         return []
     found = []
     for result in exact[:1] if exact else []:
         found.extend(_images_from_item_body(result))
     return _dedupe(found)
+
+
+def _norm(value: str) -> str:
+    value = unicodedata.normalize("NFKD", value or "")
+    value = "".join(ch for ch in value if not unicodedata.combining(ch)).lower()
+    return re.sub(r"[^a-z0-9]+", " ", value).strip()
+
+
+def _title_score(candidate: str, title: str) -> float:
+    a, b = _norm(candidate), _norm(title)
+    if not a or not b:
+        return 0.0
+    if a == b or a in b or b in a:
+        return 1.0
+    ta, tb = set(a.split()), set(b.split())
+    overlap = len(ta & tb) / max(1, len(tb))
+    sequence = difflib.SequenceMatcher(None, a, b).ratio()
+    return max(overlap, sequence)
+
+
+def _urls_from_attrs(tag: str) -> list[str]:
+    found = []
+    for attr in ("src", "data-src", "data-lazy", "data-original", "srcset"):
+        for match in re.finditer(rf"\b{attr}\s*=\s*[\"']([^\"']+)", tag, re.I):
+            raw = html.unescape(match.group(1)).replace("\\/", "/")
+            parts = [p.strip().split()[0] for p in raw.split(",")] if attr == "srcset" else [raw]
+            found.extend(parts)
+    return _dedupe(found)
+
+
+def _listing_urls(title: str) -> list[str]:
+    norm = _norm(title)
+    slug = re.sub(r"[^a-z0-9]+", "-", norm).strip("-")
+    urls = [f"https://lista.mercadolivre.com.br/{slug}"]
+    formula = re.search(r"(?:npk\s*)?0?4[ .-]?14[ .-]?0?8", norm, re.I)
+    if formula:
+        urls.extend([
+            "https://lista.mercadolivre.com.br/npk-04.14.08",
+            "https://lista.mercadolivre.com.br/adubo-04-14-08",
+            "https://lista.mercadolivre.com.br/adubo-npk-04-14-08",
+        ])
+    return list(dict.fromkeys(urls))
+
+
+def images_from_listing_search(product: dict) -> list[str]:
+    """Extrai a imagem do card cujo título corresponde ao anúncio na listagem pública."""
+    title = str(product.get("title") or "").strip()
+    item_id = str(product.get("item_id") or "").strip()
+    if not title:
+        return []
+
+    for url in _listing_urls(title):
+        try:
+            text = _request(url, accept="text/html,application/xhtml+xml").decode("utf-8", errors="ignore")
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
+            continue
+        low = text.lower()
+        if "suspicious-traffic" in low or "tráfego suspeito" in low or "trafego suspeito" in low:
+            continue
+
+        # Primeiro tenta tags <img> cujo alt/title descreve exatamente o produto.
+        scored = []
+        for match in re.finditer(r"<img\b[^>]*>", text, re.I | re.S):
+            tag = match.group(0)
+            alt_match = re.search(r"\b(?:alt|title)\s*=\s*[\"']([^\"']+)", tag, re.I | re.S)
+            label = html.unescape(alt_match.group(1)) if alt_match else ""
+            score = _title_score(label, title)
+            if score >= 0.82:
+                for image_url in _urls_from_attrs(tag):
+                    scored.append((score, "2x" in image_url.lower(), image_url))
+
+        if scored:
+            scored.sort(key=lambda row: (row[0], row[1]), reverse=True)
+            return _dedupe([row[2] for row in scored])
+
+        # Fallback: procura a ocorrência do título e usa apenas URLs mlstatic no mesmo card/bloco.
+        norm_title = _norm(title)
+        for title_match in re.finditer(re.escape(title), html.unescape(text), re.I):
+            start = max(0, title_match.start() - 5000)
+            end = min(len(text), title_match.end() + 5000)
+            chunk = text[start:end]
+            # Se houver item_id no bloco, a associação fica ainda mais forte. Sem item_id,
+            # exigimos o título textual exato já encontrado acima.
+            if item_id and item_id not in chunk and _title_score(norm_title, title) < 0.99:
+                continue
+            urls = re.findall(r"https://[^\"'<>\\ ]+mlstatic\.com[^\"'<>\\ ]+", chunk, re.I)
+            urls = _dedupe([html.unescape(u).replace("\\/", "/") for u in urls])
+            if urls:
+                urls.sort(key=lambda u: ("2x" in u.lower(), "d_nq_np" in u.lower()), reverse=True)
+                return _dedupe(urls)
+    return []
 
 
 def images_from_product_page(url: str) -> list[str]:
@@ -187,8 +275,7 @@ def images_from_product_page(url: str) -> list[str]:
     ]
     for pattern in patterns:
         for match in re.finditer(pattern, text, re.IGNORECASE):
-            candidate = html.unescape(match.group(1)).replace("\\/", "/")
-            candidate = _valid_image_url(candidate)
+            candidate = _valid_image_url(html.unescape(match.group(1)).replace("\\/", "/"))
             if candidate:
                 found.append(candidate)
     return _dedupe(found)
@@ -206,17 +293,18 @@ def enrich(path: Path) -> bool:
         found = images_from_items_api(item_id)
         if found:
             print(f"Imagens resolvidas via Items API pública: {len(found)}")
-
     if not found:
         found = images_from_public_product_ids(product)
         if found:
             print(f"Imagens resolvidas via identificador MLBU público: {len(found)}")
-
     if not found:
         found = images_from_public_search(product)
         if found:
             print(f"Imagens resolvidas via busca pública com correspondência exata: {len(found)}")
-
+    if not found:
+        found = images_from_listing_search(product)
+        if found:
+            print(f"Imagem resolvida via card da listagem pública do Mercado Livre: {len(found)}")
     if not found:
         page_url = str(product.get("canonical_url") or product.get("source_url") or "").strip()
         found = images_from_product_page(page_url)

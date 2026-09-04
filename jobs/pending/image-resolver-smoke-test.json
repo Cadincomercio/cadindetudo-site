@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "publish": false,
+  "product": {
+    "source_url": "https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614",
+    "title": "Adubo Fertilizante NPK 04-14-08 1 kg",
+    "description": "Teste técnico de resolução automática de imagem.",
+    "image_url": "",
+    "canonical_url": "https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614",
+    "item_id": "MLB7273066334"
+  },
+  "research": {
+    "queries": ["teste imagem produto mercado livre", "teste técnico item imagem"],
+    "candidate_terms": ["teste imagem", "produto mercado livre", "imagem produto", "resolução imagem"],
+    "notes": "Job técnico exclusivamente para validar a resolução automática da imagem real do produto sem publicar página."
+  },
+  "pages": [
+    {
+      "slug": "teste-imagem-ml",
+      "heading": "Teste técnico de imagem Mercado Livre",
+      "meta_description": "Página técnica não publicada para validar automaticamente a imagem principal do anúncio do Mercado Livre.",
+      "intro": "Este conteúdo existe apenas para validar tecnicamente a resolução automática da imagem principal de um anúncio do Mercado Livre.",
+      "why": "O teste confirma se o pipeline consegue preencher product.image_url sem depender do GPT e sem inventar uma imagem para a página.",
+      "observe": "O job usa publish false e não deve criar uma landing page pública nem alterar os clusters SEO existentes.",
+      "faq_q": "Este teste publica uma página real?",
+      "faq_a": "Não. O campo publish está definido como false para validar a infraestrutura sem criar uma página no site.",
+      "search_intent": "Validar tecnicamente a resolução automática da imagem do produto.",
+      "candidate_terms": ["teste imagem", "imagem produto"]
+    }
+  ]
+}

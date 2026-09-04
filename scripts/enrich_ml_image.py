@@ -176,6 +176,15 @@ def _mlbu_from_product(product: dict) -> str:
     return ""
 
 
+def _item_id_from_product(product: dict) -> str:
+    candidates = [product.get("item_id"), product.get("source_url"), product.get("canonical_url")]
+    for value in candidates:
+        match = re.search(r"\b(MLB\d{6,})\b", str(value or ""), re.I)
+        if match:
+            return match.group(1).upper()
+    return ""
+
+
 def images_from_public_product_ids(product: dict) -> list[str]:
     mlbu = _mlbu_from_product(product)
     if not mlbu:
@@ -262,18 +271,13 @@ def _urls_from_attrs(tag: str) -> list[str]:
 def _listing_urls(title: str) -> list[str]:
     norm = _norm(title)
     slug = re.sub(r"[^a-z0-9]+", "-", norm).strip("-")
-    urls = [f"https://lista.mercadolivre.com.br/{slug}"]
-    if re.search(r"(?:npk\s*)?0?4[ .-]?14[ .-]?0?8", norm, re.I):
-        urls.extend([
-            "https://lista.mercadolivre.com.br/npk-04.14.08",
-            "https://lista.mercadolivre.com.br/adubo-04-14-08",
-            "https://lista.mercadolivre.com.br/adubo-npk-04-14-08",
-        ])
-    return list(dict.fromkeys(urls))
+    return [f"https://lista.mercadolivre.com.br/{slug}"] if slug else []
 
 
 def images_from_listing_search(product: dict) -> list[str]:
     title = str(product.get("title") or "").strip()
+    item_id = _item_id_from_product(product)
+    mlbu = _mlbu_from_product(product)
     if not title:
         return []
     for url in _listing_urls(title):
@@ -291,6 +295,11 @@ def images_from_listing_search(product: dict) -> list[str]:
             label = html.unescape(alt_match.group(1)) if alt_match else ""
             score = _title_score(label, title)
             if score >= 0.82:
+                # Confirma o card pelo identificador quando a listagem o expõe perto da imagem.
+                context = text[max(0, match.start() - 4000):min(len(text), match.end() + 4000)].upper()
+                identifiers = [value for value in (item_id, mlbu) if value]
+                if identifiers and not any(value in context for value in identifiers) and score < 1.0:
+                    continue
                 for image_url in _urls_from_attrs(tag):
                     scored.append((score, "2x" in image_url.lower(), image_url))
         if scored:
@@ -330,7 +339,9 @@ def enrich(path: Path, cache_path: Path = CACHE_PATH) -> bool:
     product = job.get("product") or {}
     existing_main = _valid_image_url(product.get("main_image_url") or product.get("image_url"))
     existing_gallery = _dedupe(product.get("gallery_images") or [])
-    item_id = str(product.get("item_id") or "").strip().upper()
+    item_id = _item_id_from_product(product)
+    if item_id and product.get("item_id") != item_id:
+        product["item_id"] = item_id
     cache = _load_cache(cache_path)
     found = []
     source = ""
@@ -339,6 +350,10 @@ def enrich(path: Path, cache_path: Path = CACHE_PATH) -> bool:
         if found:
             source = "cache"
             print(f"Cache hit para {item_id}: {len(found)} imagem(ns); consultas de rede ignoradas.")
+    if not found and (existing_main or existing_gallery):
+        found = _dedupe(([existing_main] if existing_main else []) + existing_gallery)
+        source = "job"
+        print(f"Imagem válida encontrada no próprio job: {len(found)} imagem(ns); consultas de rede ignoradas.")
     if not found and item_id:
         found = images_from_items_api(item_id)
         if found:

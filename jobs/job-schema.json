@@ -53,7 +53,7 @@
     "pages": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 12,
+      "maxItems": 20,
       "items": {
         "type": "object",
         "required": ["slug", "heading", "meta_description", "intro", "why", "observe", "faq_q", "faq_a", "search_intent", "candidate_terms"],

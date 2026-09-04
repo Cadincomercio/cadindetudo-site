@@ -1,0 +1,44 @@
+name: Validar Cadin SEO Engine
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/**"
+      - "templates/**"
+      - "tests/**"
+      - "jobs/job-schema.json"
+      - "GPT-INSTRUCTIONS.md"
+      - ".github/workflows/validar-engine.yml"
+  pull_request:
+    paths:
+      - "scripts/**"
+      - "templates/**"
+      - "tests/**"
+      - "jobs/job-schema.json"
+      - "GPT-INSTRUCTIONS.md"
+      - ".github/workflows/validar-engine.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validar Python e schema
+        run: |
+          python -m py_compile scripts/enrich_ml_image.py scripts/publish_gpt_job.py scripts/generate_seo.py
+          python -c "import json, pathlib; json.loads(pathlib.Path('jobs/job-schema.json').read_text(encoding='utf-8'))"
+
+      - name: Executar testes
+        run: python -m unittest discover -s tests -v

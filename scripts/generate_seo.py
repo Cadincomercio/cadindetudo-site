@@ -363,7 +363,7 @@ def main() -> int:
     if "mercadolivre.com" not in args.url and "mercadolivre.com.br" not in args.url:
         print("A URL informada não parece ser do Mercado Livre.", file=sys.stderr)
         return 2
-    max_pages = min(max(args.max_pages, 1), 12)
+    max_pages = min(max(args.max_pages, 1), 20)
     product = extract_product(args.url)
     if product.title.lower() in {"mercado libre", "mercado livre"}:
         print("Não foi possível identificar o produto com segurança; nada foi publicado.", file=sys.stderr)

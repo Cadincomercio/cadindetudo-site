@@ -10,7 +10,7 @@ Receber uma URL de anúncio do Mercado Livre e gerar páginas SEO estáticas den
 2. Selecionar **Gerar paginas SEO**.
 3. Clicar em **Run workflow**.
 4. Colar a URL do anúncio do Mercado Livre.
-5. Definir a quantidade máxima de páginas (1 a 12).
+5. Definir a quantidade máxima de páginas (1 a 20).
 6. Manter `publish = true`.
 7. Executar.
 

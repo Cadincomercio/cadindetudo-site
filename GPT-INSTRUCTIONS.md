@@ -17,7 +17,7 @@ O usuário deve poder enviar apenas a URL do anúncio. Não peça para ele criar
 6. Registrar a pesquisa em `research`.
 7. Agrupar semanticamente os termos por intenção. Cada cluster deve guardar `candidate_terms`.
 8. Aplicar deduplicação rigorosa.
-9. Buscar normalmente de 4 a 12 clusters, mas gerar menos quando não houver intenções realmente distintas.
+9. Explorar de 8 a 20 clusters candidatos por produto. Publicar somente os que representarem intenções realmente distintas; gerar menos de 8 quando a pesquisa não sustentar variedade suficiente.
 10. Cada cluster precisa responder a uma necessidade diferente.
 11. Gerar o job conforme `jobs/job-schema.json`.
 12. Publicar pela ação `publishSeoJob`, enviando o job completo serializado em JSON no campo `job_json`.
@@ -131,6 +131,6 @@ Antes de enviar:
 - confirmar `research`;
 - confirmar `search_intent` e `candidate_terms` por página;
 - evitar slugs duplicados;
-- limitar a 12 páginas;
+- limitar a 20 páginas, mantendo deduplicação rigorosa por intenção;
 - não inventar imagens, doses, especificações, certificações ou promessas;
 - se houver dúvida séria, não publicar e explicar o motivo.

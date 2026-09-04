@@ -96,8 +96,8 @@ def validate(job: dict) -> None:
 
     if not isinstance(pages, list) or not pages:
         raise ValueError("pages precisa ter ao menos uma página")
-    if len(pages) > 12:
-        raise ValueError("Máximo de 12 páginas por job")
+    if len(pages) > 20:
+        raise ValueError("Máximo de 20 páginas por job")
 
     seen = set()
     for page in pages:
@@ -211,26 +211,15 @@ def hero_visual_html(product: dict, page: dict) -> str:
     return '<div class="visual-theme"><div class="icon">🌿</div><strong>Contexto de uso</strong><span>' + esc(theme) + '</span></div>'
 
 
-def gallery_html(product: dict) -> str:
-    main = _main_image(product)
-    raw = product.get("gallery_images") or []
-    images = []
-    seen = set()
-    for value in raw:
-        url = str(value or "").strip()
-        if not url or url == main or url in seen:
-            continue
-        seen.add(url)
-        images.append(url)
-        if len(images) >= 6:
-            break
-    if not images:
+def offer_visual_html(product: dict) -> str:
+    image = _main_image(product)
+    if not image:
         return ""
-    cards = "".join(
-        '<figure class="gallery-card"><img src="' + esc(url, quote=True) + '" alt="' + esc(product.get("title"), quote=True) + '" loading="lazy" onerror="this.closest(\'figure\').style.display=\'none\'"></figure>'
-        for url in images
+    return (
+        '<div class="offer-photo"><img class="product-image" loading="lazy" '
+        f'src="{esc(image, quote=True)}" alt="{esc(product.get("title"), quote=True)}" '
+        'onerror="this.closest(\'.offer-photo\').style.display=\'none\'"></div>'
     )
-    return '<section class="section product-gallery"><div class="section-kicker">Imagens reais do anúncio</div><h2>Veja mais detalhes do produto</h2><div class="gallery-grid">' + cards + '</div></section>'
 
 
 def context_visual_html(page: dict) -> str:
@@ -265,7 +254,7 @@ def render(template: str, product: dict, page: dict) -> str:
         "{{INTRO}}": esc(page["intro"]),
         "{{HERO_SUBTITLE}}": esc(hero_subtitle),
         "{{HERO_VISUAL_HTML}}": hero_visual_html(product, page),
-        "{{GALLERY_HTML}}": gallery_html(product),
+        "{{OFFER_VISUAL_HTML}}": offer_visual_html(product),
         "{{HIGHLIGHTS_HTML}}": highlights_html(highlights),
         "{{BENEFIT_SECTION_HTML}}": benefit_section_html(benefit_cards),
         "{{PRODUCT_TITLE}}": esc(product["title"]),

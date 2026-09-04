@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import importlib.util
 import io
 import json
@@ -92,6 +93,27 @@ class PersistentImageCacheTest(unittest.TestCase):
             product = json.loads(job_path.read_text(encoding="utf-8"))["product"]
             self.assertEqual(product["main_image_url"], IMAGE)
 
+    def test_job_image_is_cached_before_any_network_attempt(self) -> None:
+        job = _job()
+        job["product"].pop("item_id")
+        job["product"]["source_url"] += "?wid=MLB7273066334"
+        job["product"]["main_image_url"] = IMAGE
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache_path = root / "cache.json"
+            job_path = root / "job.json"
+            job_path.write_text(json.dumps(job), encoding="utf-8")
+            with (
+                mock.patch.object(resolver, "images_from_items_api", side_effect=AssertionError("network")),
+                mock.patch.object(resolver, "images_from_public_product_ids", side_effect=AssertionError("network")),
+                mock.patch.object(resolver, "images_from_public_search", side_effect=AssertionError("network")),
+                mock.patch.object(resolver, "images_from_listing_search", side_effect=AssertionError("network")),
+                mock.patch.object(resolver, "images_from_product_page", side_effect=AssertionError("network")),
+            ):
+                resolver.enrich(job_path, cache_path)
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))[ITEM_ID]
+            self.assertEqual(cached["source"], "job")
+
     def test_smaller_resolution_does_not_replace_larger_gallery(self) -> None:
         images = [
             f"https://http2.mlstatic.com/D_NQ_NP_10{i}-MLB12345678901_012026-O.webp"
@@ -105,6 +127,36 @@ class PersistentImageCacheTest(unittest.TestCase):
             resolver._save_cache(cache, product, images[:1], "items_api", cache_path)
             saved = json.loads(cache_path.read_text(encoding="utf-8"))[ITEM_ID]
             self.assertEqual(saved["gallery_images"], images)
+
+
+class PublisherStructureTest(unittest.TestCase):
+    @staticmethod
+    def _valid_job_with_pages(total: int) -> dict:
+        fixture = REPOSITORY_ROOT / "jobs" / "processed" / "teste-imagem-listagem-npk-3.json"
+        job = publisher.normalize(json.loads(fixture.read_text(encoding="utf-8")))
+        original = job["pages"][0]
+        job["pages"] = []
+        for index in range(total):
+            page = copy.deepcopy(original)
+            page["slug"] = f"pagina-{index + 1}"
+            job["pages"].append(page)
+        return job
+
+    def test_accepts_twenty_pages_and_rejects_twenty_one(self) -> None:
+        publisher.validate(self._valid_job_with_pages(20))
+        with self.assertRaisesRegex(ValueError, "Máximo de 20 páginas"):
+            publisher.validate(self._valid_job_with_pages(21))
+
+    def test_premium_template_uses_only_the_main_image_source(self) -> None:
+        template = (REPOSITORY_ROOT / "templates" / "landing.html").read_text(encoding="utf-8")
+        job = self._valid_job_with_pages(1)
+        product = job["product"]
+        product["main_image_url"] = IMAGE
+        product["gallery_images"] = [IMAGE, IMAGE.replace("810823", "999999")]
+        rendered = publisher.render(template, product, job["pages"][0])
+        self.assertEqual(rendered.count(f'src="{IMAGE}"'), 2)
+        self.assertNotIn("999999", rendered)
+        self.assertNotIn("GALLERY_HTML", rendered)
 
 
 if __name__ == "__main__":

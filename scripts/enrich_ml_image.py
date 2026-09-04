@@ -345,15 +345,16 @@ def enrich(path: Path, cache_path: Path = CACHE_PATH) -> bool:
     cache = _load_cache(cache_path)
     found = []
     source = ""
-    if item_id:
+    if existing_main or existing_gallery:
+        # O job é a fonte de verdade: preserva a ordem enviada e não consulta cache/rede.
+        found = _dedupe(existing_gallery or [existing_main])
+        source = "job"
+        print(f"Imagem válida encontrada no próprio job: {len(found)} imagem(ns); consultas de rede ignoradas.")
+    if not found and item_id:
         found, _ = _cache_images(cache, item_id)
         if found:
             source = "cache"
             print(f"Cache hit para {item_id}: {len(found)} imagem(ns); consultas de rede ignoradas.")
-    if not found and (existing_main or existing_gallery):
-        found = _dedupe(([existing_main] if existing_main else []) + existing_gallery)
-        source = "job"
-        print(f"Imagem válida encontrada no próprio job: {len(found)} imagem(ns); consultas de rede ignoradas.")
     if not found and item_id:
         found = images_from_items_api(item_id)
         if found:
@@ -380,12 +381,12 @@ def enrich(path: Path, cache_path: Path = CACHE_PATH) -> bool:
         if found:
             source = "product_page"
             print(f"Imagens resolvidas via metadados da página: {len(found)}")
-    combined = _dedupe(([existing_main] if existing_main else []) + existing_gallery + found)
+    combined = found if source == "job" else _dedupe(([existing_main] if existing_main else []) + existing_gallery + found)
     if not combined:
         print("Não foi possível resolver imagem real e confiável sem autenticação; mantendo campos vazios.")
         return False
-    main = existing_main or combined[0]
-    gallery = _dedupe([main] + combined)
+    main = combined[0] if source == "job" else existing_main or combined[0]
+    gallery = combined if source == "job" else _dedupe([main] + combined)
     if source and source != "cache":
         _save_cache(cache, product, gallery, source, cache_path)
         print(f"Cache de imagens atualizado para {item_id}.")

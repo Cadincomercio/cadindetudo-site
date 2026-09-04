@@ -74,6 +74,7 @@
             "items": {"type": "string", "minLength": 3}
           },
           "hero_subtitle": {"type": "string", "minLength": 20, "maxLength": 260},
+          "practical_note": {"type": "string", "minLength": 20, "maxLength": 360},
           "benefit_cards": {
             "type": "array",
             "maxItems": 6,

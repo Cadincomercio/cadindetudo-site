@@ -124,6 +124,9 @@ def validate(job: dict) -> None:
         validate_string_list(page.get("highlights"), f"pages[{slug}].highlights")
         validate_string_list(page.get("checklist"), f"pages[{slug}].checklist")
         validate_string_list(page.get("benefit_cards"), f"pages[{slug}].benefit_cards", max_items=6)
+        practical_note = page.get("practical_note")
+        if practical_note is not None and not 20 <= len(str(practical_note).strip()) <= 360:
+            raise ValueError(f"practical_note fora do limite em {slug}")
 
         blocks = page.get("practical_blocks")
         if blocks is not None:
@@ -158,6 +161,45 @@ def highlights_html(items: list[str]) -> str:
         return ""
     chips = "".join(f'<div class="chip">{esc(item)}</div>' for item in items)
     return f'<div class="chips">{chips}</div>'
+
+
+def benefits_html(items: list[str]) -> str:
+    return list_html(items[:6], "benefits")
+
+
+def gallery_html(product: dict) -> str:
+    gallery = product.get("gallery_images") or []
+    if not isinstance(gallery, list):
+        gallery = []
+    images, seen = [], set()
+    for value in gallery:
+        image = str(value or "").strip()
+        if image and image not in seen:
+            images.append(image)
+            seen.add(image)
+
+    main = _main_image(product)
+    if not images and main:
+        images = [main]
+    if not images:
+        return '<div class="gallery"><div class="visual-theme">' + esc(product.get("title") or "Produto selecionado") + '</div></div>'
+
+    title = str(product.get("title") or "Produto").strip()
+    thumbs = []
+    for index, image in enumerate(images):
+        alt = f"{title} — imagem {index + 1}"
+        current = "true" if index == 0 else "false"
+        thumbs.append(
+            f'<button class="thumb" type="button" data-gallery-thumb data-src="{esc(image, quote=True)}" '
+            f'data-alt="{esc(alt, quote=True)}" aria-label="Ver imagem {index + 1}" aria-current="{current}">'
+            f'<img loading="lazy" src="{esc(image, quote=True)}" alt=""></button>'
+        )
+    main_alt = f"{title} — imagem 1"
+    return (
+        '<div class="gallery"><div class="main-photo">'
+        f'<img data-gallery-main src="{esc(images[0], quote=True)}" alt="{esc(main_alt, quote=True)}">'
+        '</div><div class="thumbs" aria-label="Galeria do produto">' + "".join(thumbs) + '</div></div>'
+    )
 
 
 def benefit_section_html(items: list[str]) -> str:
@@ -254,13 +296,16 @@ def render(template: str, product: dict, page: dict) -> str:
         "{{INTRO}}": esc(page["intro"]),
         "{{HERO_SUBTITLE}}": esc(hero_subtitle),
         "{{HERO_VISUAL_HTML}}": hero_visual_html(product, page),
+        "{{GALLERY_HTML}}": gallery_html(product),
         "{{OFFER_VISUAL_HTML}}": offer_visual_html(product),
         "{{HIGHLIGHTS_HTML}}": highlights_html(highlights),
         "{{BENEFIT_SECTION_HTML}}": benefit_section_html(benefit_cards),
+        "{{BENEFITS_HTML}}": benefits_html(benefit_cards),
         "{{PRODUCT_TITLE}}": esc(product["title"]),
         "{{ML_URL}}": esc(product["canonical_url"], quote=True),
         "{{WHY}}": esc(page["why"]),
         "{{OBSERVE}}": esc(page["observe"]),
+        "{{PRACTICAL_NOTE}}": esc(page.get("practical_note") or page["observe"]),
         "{{CHECKLIST_HTML}}": list_html(page.get("checklist") or []),
         "{{CONTEXT_VISUAL_HTML}}": context_visual_html(page),
         "{{PRACTICAL_BLOCKS_HTML}}": practical_blocks_html(page.get("practical_blocks") or []),

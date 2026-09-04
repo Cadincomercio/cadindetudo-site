@@ -114,6 +114,23 @@ class PersistentImageCacheTest(unittest.TestCase):
             cached = json.loads(cache_path.read_text(encoding="utf-8"))[ITEM_ID]
             self.assertEqual(cached["source"], "job")
 
+    def test_supplied_gallery_order_wins_over_cache(self) -> None:
+        job = _job()
+        supplied = [IMAGE.replace("810823", str(value)) for value in ("111111", "222222", "333333")]
+        job["product"]["main_image_url"] = IMAGE
+        job["product"]["gallery_images"] = supplied
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache_path = root / "cache.json"
+            cache_path.write_text(json.dumps({ITEM_ID: {"main_image_url": IMAGE, "gallery_images": [IMAGE]}}), encoding="utf-8")
+            job_path = root / "job.json"
+            job_path.write_text(json.dumps(job), encoding="utf-8")
+            with mock.patch.object(resolver, "images_from_items_api", side_effect=AssertionError("network")):
+                resolver.enrich(job_path, cache_path)
+            product = json.loads(job_path.read_text(encoding="utf-8"))["product"]
+            self.assertEqual(product["main_image_url"], supplied[0])
+            self.assertEqual(product["gallery_images"], supplied)
+
     def test_smaller_resolution_does_not_replace_larger_gallery(self) -> None:
         images = [
             f"https://http2.mlstatic.com/D_NQ_NP_10{i}-MLB12345678901_012026-O.webp"
@@ -147,16 +164,32 @@ class PublisherStructureTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Máximo de 20 páginas"):
             publisher.validate(self._valid_job_with_pages(21))
 
-    def test_premium_template_uses_only_the_main_image_source(self) -> None:
+    def test_short_template_uses_gallery_in_supplied_order(self) -> None:
         template = (REPOSITORY_ROOT / "templates" / "landing.html").read_text(encoding="utf-8")
         job = self._valid_job_with_pages(1)
         product = job["product"]
         product["main_image_url"] = IMAGE
         product["gallery_images"] = [IMAGE, IMAGE.replace("810823", "999999")]
         rendered = publisher.render(template, product, job["pages"][0])
-        self.assertEqual(rendered.count(f'src="{IMAGE}"'), 2)
-        self.assertNotIn("999999", rendered)
-        self.assertNotIn("GALLERY_HTML", rendered)
+        second = IMAGE.replace("810823", "999999")
+        self.assertIn('class="product-card"', rendered)
+        self.assertIn(f'data-gallery-main src="{IMAGE}"', rendered)
+        self.assertLess(rendered.index(IMAGE), rendered.index(second))
+        self.assertEqual(rendered.count('<button class="thumb"'), 2)
+        self.assertEqual(rendered.count('data-cadin-cta="mercado-livre"'), 2)
+        self.assertNotIn("{{GALLERY_HTML}}", rendered)
+        self.assertNotIn("Dúvidas frequentes", rendered)
+
+    def test_gallery_does_not_prepend_a_different_main_when_job_supplies_images(self) -> None:
+        template = (REPOSITORY_ROOT / "templates" / "landing.html").read_text(encoding="utf-8")
+        job = self._valid_job_with_pages(1)
+        product = job["product"]
+        supplied = [IMAGE.replace("810823", str(value)) for value in ("111111", "222222", "333333")]
+        product["main_image_url"] = IMAGE
+        product["gallery_images"] = supplied
+        rendered = publisher.render(template, product, job["pages"][0])
+        self.assertIn(f'data-gallery-main src="{supplied[0]}"', rendered)
+        self.assertNotIn(IMAGE, rendered)
 
 
 if __name__ == "__main__":

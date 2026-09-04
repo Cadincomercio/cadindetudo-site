@@ -17,20 +17,22 @@
     ],
     "candidate_terms": [
       "npk 04-14-08",
-      "adubo npk"
+      "adubo npk",
+      "fertilizante npk",
+      "plantio flores frutos"
     ],
-    "notes": "Job técnico publish=false para validar leitura do cache persistente de imagens do Mercado Livre sem publicar páginas reais."
+    "notes": "Job técnico publish=false para validar leitura do cache persistente de imagens do Mercado Livre sem publicar páginas reais e sem depender da rede quando houver cache hit."
   },
   "pages": [
     {
       "slug": "teste-cache-npk",
       "heading": "Teste técnico de cache NPK 04-14-08",
-      "meta_description": "Teste técnico interno do cache persistente de imagens do Mercado Livre.",
+      "meta_description": "Teste técnico interno do cache persistente de imagens do Mercado Livre sem publicar páginas reais.",
       "intro": "Este conteúdo existe somente para validar tecnicamente o cache de imagens e não será publicado como página pública.",
       "why": "O teste verifica se o item MLB7273066334 recupera a imagem previamente armazenada no cache sem depender de consultas de rede.",
-      "observe": "O campo publish está definido como false.",
+      "observe": "O campo publish está definido como false e o teste não deve criar nem alterar landing pages públicas.",
       "faq_q": "Este teste publica uma página real?",
-      "faq_a": "Não. Ele apenas valida o pipeline técnico.",
+      "faq_a": "Não. Ele apenas valida o pipeline técnico de cache e enriquecimento de imagem.",
       "search_intent": "Validar cache persistente de imagens do Mercado Livre.",
       "candidate_terms": [
         "teste cache npk"

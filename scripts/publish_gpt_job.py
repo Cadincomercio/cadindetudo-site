@@ -31,6 +31,10 @@ def normalize(job: dict) -> dict:
         product["canonical_url"] = product["ml_url"]
     if not product.get("source_url"):
         product["source_url"] = product.get("canonical_url") or product.get("ml_url") or ""
+    if not product.get("main_image_url") and product.get("image_url"):
+        product["main_image_url"] = product["image_url"]
+    if not product.get("image_url") and product.get("main_image_url"):
+        product["image_url"] = product["main_image_url"]
 
     pages = job.get("pages")
     if pages is None:
@@ -81,6 +85,7 @@ def validate(job: dict) -> None:
         raise ValueError("product.canonical_url precisa apontar para Mercado Livre")
 
     validate_string_list(product.get("highlights"), "product.highlights")
+    validate_string_list(product.get("gallery_images"), "product.gallery_images", max_items=8)
 
     if not isinstance(research, dict):
         raise ValueError("research é obrigatório antes da publicação")
@@ -191,8 +196,12 @@ def faqs_html(page: dict) -> str:
     return "".join(parts)
 
 
+def _main_image(product: dict) -> str:
+    return str(product.get("main_image_url") or product.get("image_url") or "").strip()
+
+
 def hero_visual_html(product: dict, page: dict) -> str:
-    image = str(product.get("image_url") or "").strip()
+    image = _main_image(product)
     if image:
         return (
             f'<img class="product-image" src="{esc(image, quote=True)}" '
@@ -200,6 +209,28 @@ def hero_visual_html(product: dict, page: dict) -> str:
         )
     theme = str(page.get("image_theme") or page.get("search_intent") or product.get("title") or "").strip()
     return '<div class="visual-theme"><div class="icon">🌿</div><strong>Contexto de uso</strong><span>' + esc(theme) + '</span></div>'
+
+
+def gallery_html(product: dict) -> str:
+    main = _main_image(product)
+    raw = product.get("gallery_images") or []
+    images = []
+    seen = set()
+    for value in raw:
+        url = str(value or "").strip()
+        if not url or url == main or url in seen:
+            continue
+        seen.add(url)
+        images.append(url)
+        if len(images) >= 6:
+            break
+    if not images:
+        return ""
+    cards = "".join(
+        '<figure class="gallery-card"><img src="' + esc(url, quote=True) + '" alt="' + esc(product.get("title"), quote=True) + '" loading="lazy" onerror="this.closest(\'figure\').style.display=\'none\'"></figure>'
+        for url in images
+    )
+    return '<section class="section product-gallery"><div class="section-kicker">Imagens reais do anúncio</div><h2>Veja mais detalhes do produto</h2><div class="gallery-grid">' + cards + '</div></section>'
 
 
 def context_visual_html(page: dict) -> str:
@@ -234,6 +265,7 @@ def render(template: str, product: dict, page: dict) -> str:
         "{{INTRO}}": esc(page["intro"]),
         "{{HERO_SUBTITLE}}": esc(hero_subtitle),
         "{{HERO_VISUAL_HTML}}": hero_visual_html(product, page),
+        "{{GALLERY_HTML}}": gallery_html(product),
         "{{HIGHLIGHTS_HTML}}": highlights_html(highlights),
         "{{BENEFIT_SECTION_HTML}}": benefit_section_html(benefit_cards),
         "{{PRODUCT_TITLE}}": esc(product["title"]),

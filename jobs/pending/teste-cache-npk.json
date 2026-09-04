@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "publish": false,
+  "product": {
+    "source_url": "https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614",
+    "canonical_url": "https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614",
+    "title": "Adubo Fertilizante Npk 04-14-08 1 Kg Plantio Flores E Frutos",
+    "item_id": "MLB7273066334",
+    "image_url": "",
+    "main_image_url": "",
+    "gallery_images": []
+  },
+  "research": {
+    "queries": [
+      "teste cache imagem npk"
+    ],
+    "candidate_terms": [
+      "npk 04-14-08",
+      "adubo npk"
+    ],
+    "notes": "Job técnico publish=false para validar leitura do cache persistente de imagens do Mercado Livre sem publicar páginas reais."
+  },
+  "pages": [
+    {
+      "slug": "teste-cache-npk",
+      "heading": "Teste técnico de cache NPK 04-14-08",
+      "meta_description": "Teste técnico interno do cache persistente de imagens do Mercado Livre.",
+      "intro": "Este conteúdo existe somente para validar tecnicamente o cache de imagens e não será publicado como página pública.",
+      "why": "O teste verifica se o item MLB7273066334 recupera a imagem previamente armazenada no cache sem depender de consultas de rede.",
+      "observe": "O campo publish está definido como false.",
+      "faq_q": "Este teste publica uma página real?",
+      "faq_a": "Não. Ele apenas valida o pipeline técnico.",
+      "search_intent": "Validar cache persistente de imagens do Mercado Livre.",
+      "candidate_terms": [
+        "teste cache npk"
+      ]
+    }
+  ]
+}

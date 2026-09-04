@@ -42,18 +42,27 @@ def _valid_image_url(value: object) -> str:
     )
     if any(fragment in path for fragment in blocked):
         return ""
-    if "d_nq_" not in path and not path.endswith((".jpg", ".jpeg", ".png", ".webp", ".avif")):
+    if "d_nq_" not in path and "d_q_np" not in path and not path.endswith((".jpg", ".jpeg", ".png", ".webp", ".avif")):
         return ""
     return url
+
+
+def _image_key(url: str) -> str:
+    """Agrupa versões 2X/N/V/C/T/L/B da mesma foto pelo identificador central."""
+    match = re.search(r"(\d+-MLB\d+_\d{6})", url, re.I)
+    return match.group(1).lower() if match else url.lower()
 
 
 def _dedupe(values: list[str], limit: int = 8) -> list[str]:
     out, seen = [], set()
     for value in values:
         url = _valid_image_url(value)
-        if not url or url in seen:
+        if not url:
             continue
-        seen.add(url)
+        key = _image_key(url)
+        if key in seen:
+            continue
+        seen.add(key)
         out.append(url)
         if len(out) >= limit:
             break
@@ -196,8 +205,7 @@ def _listing_urls(title: str) -> list[str]:
     norm = _norm(title)
     slug = re.sub(r"[^a-z0-9]+", "-", norm).strip("-")
     urls = [f"https://lista.mercadolivre.com.br/{slug}"]
-    formula = re.search(r"(?:npk\s*)?0?4[ .-]?14[ .-]?0?8", norm, re.I)
-    if formula:
+    if re.search(r"(?:npk\s*)?0?4[ .-]?14[ .-]?0?8", norm, re.I):
         urls.extend([
             "https://lista.mercadolivre.com.br/npk-04.14.08",
             "https://lista.mercadolivre.com.br/adubo-04-14-08",
@@ -207,12 +215,9 @@ def _listing_urls(title: str) -> list[str]:
 
 
 def images_from_listing_search(product: dict) -> list[str]:
-    """Extrai a imagem do card cujo título corresponde ao anúncio na listagem pública."""
     title = str(product.get("title") or "").strip()
-    item_id = str(product.get("item_id") or "").strip()
     if not title:
         return []
-
     for url in _listing_urls(title):
         try:
             text = _request(url, accept="text/html,application/xhtml+xml").decode("utf-8", errors="ignore")
@@ -221,8 +226,6 @@ def images_from_listing_search(product: dict) -> list[str]:
         low = text.lower()
         if "suspicious-traffic" in low or "tráfego suspeito" in low or "trafego suspeito" in low:
             continue
-
-        # Primeiro tenta tags <img> cujo alt/title descreve exatamente o produto.
         scored = []
         for match in re.finditer(r"<img\b[^>]*>", text, re.I | re.S):
             tag = match.group(0)
@@ -232,26 +235,9 @@ def images_from_listing_search(product: dict) -> list[str]:
             if score >= 0.82:
                 for image_url in _urls_from_attrs(tag):
                     scored.append((score, "2x" in image_url.lower(), image_url))
-
         if scored:
             scored.sort(key=lambda row: (row[0], row[1]), reverse=True)
             return _dedupe([row[2] for row in scored])
-
-        # Fallback: procura a ocorrência do título e usa apenas URLs mlstatic no mesmo card/bloco.
-        norm_title = _norm(title)
-        for title_match in re.finditer(re.escape(title), html.unescape(text), re.I):
-            start = max(0, title_match.start() - 5000)
-            end = min(len(text), title_match.end() + 5000)
-            chunk = text[start:end]
-            # Se houver item_id no bloco, a associação fica ainda mais forte. Sem item_id,
-            # exigimos o título textual exato já encontrado acima.
-            if item_id and item_id not in chunk and _title_score(norm_title, title) < 0.99:
-                continue
-            urls = re.findall(r"https://[^\"'<>\\ ]+mlstatic\.com[^\"'<>\\ ]+", chunk, re.I)
-            urls = _dedupe([html.unescape(u).replace("\\/", "/") for u in urls])
-            if urls:
-                urls.sort(key=lambda u: ("2x" in u.lower(), "d_nq_np" in u.lower()), reverse=True)
-                return _dedupe(urls)
     return []
 
 
@@ -288,7 +274,6 @@ def enrich(path: Path) -> bool:
     existing_gallery = _dedupe(product.get("gallery_images") or [])
     item_id = str(product.get("item_id") or "").strip()
     found = []
-
     if item_id:
         found = images_from_items_api(item_id)
         if found:
@@ -310,12 +295,10 @@ def enrich(path: Path) -> bool:
         found = images_from_product_page(page_url)
         if found:
             print(f"Imagens resolvidas via metadados da página: {len(found)}")
-
     combined = _dedupe(([existing_main] if existing_main else []) + existing_gallery + found)
     if not combined:
         print("Não foi possível resolver imagem real e confiável sem autenticação; mantendo campos vazios.")
         return False
-
     main = existing_main or combined[0]
     gallery = _dedupe([main] + combined)
     changed = False

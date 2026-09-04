@@ -10,7 +10,12 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+CACHE_PATH = REPOSITORY_ROOT / "data" / "ml_images_cache.json"
 
 
 def _request(url: str, *, accept: str = "application/json") -> bytes:
@@ -67,6 +72,59 @@ def _dedupe(values: list[str], limit: int = 8) -> list[str]:
         if len(out) >= limit:
             break
     return out
+
+
+def _load_cache(path: Path = CACHE_PATH) -> dict:
+    """Carrega tanto o formato atual (chave por item_id) quanto um cache vazio/antigo."""
+    try:
+        body = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return {}
+    return body if isinstance(body, dict) else {}
+
+
+def _cache_images(cache: dict, item_id: str) -> tuple[list[str], dict]:
+    entry = cache.get(item_id)
+    if not isinstance(entry, dict):
+        return [], {}
+    main = _valid_image_url(entry.get("main_image_url"))
+    gallery = entry.get("gallery_images")
+    if not isinstance(gallery, list):
+        gallery = []
+    images = _dedupe(([main] if main else []) + gallery)
+    return images, entry
+
+
+def _save_cache(
+    cache: dict,
+    product: dict,
+    images: list[str],
+    source: str,
+    path: Path = CACHE_PATH,
+) -> None:
+    item_id = str(product.get("item_id") or "").strip().upper()
+    images = _dedupe(images)
+    if not re.fullmatch(r"MLB\d{6,}", item_id) or not images:
+        return
+
+    old_images, old_entry = _cache_images(cache, item_id)
+    # Uma resolução parcial nunca reduz a galeria persistida anteriormente.
+    gallery = old_images if len(old_images) > len(images) else images
+    old_main = _valid_image_url(old_entry.get("main_image_url"))
+    main = old_main if old_main and len(old_images) > len(images) else gallery[0]
+    entry = {
+        "title": str(product.get("title") or old_entry.get("title") or "").strip(),
+        "mlbu": _mlbu_from_product(product) or str(old_entry.get("mlbu") or "").strip().upper(),
+        "main_image_url": main,
+        "gallery_images": _dedupe([main] + gallery),
+        "source": source,
+        "resolved_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+    cache[item_id] = entry
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(cache, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(path)
 
 
 def _images_from_item_body(body: dict) -> list[str]:
@@ -267,33 +325,45 @@ def images_from_product_page(url: str) -> list[str]:
     return _dedupe(found)
 
 
-def enrich(path: Path) -> bool:
+def enrich(path: Path, cache_path: Path = CACHE_PATH) -> bool:
     job = json.loads(path.read_text(encoding="utf-8"))
     product = job.get("product") or {}
     existing_main = _valid_image_url(product.get("main_image_url") or product.get("image_url"))
     existing_gallery = _dedupe(product.get("gallery_images") or [])
-    item_id = str(product.get("item_id") or "").strip()
+    item_id = str(product.get("item_id") or "").strip().upper()
+    cache = _load_cache(cache_path)
     found = []
+    source = ""
     if item_id:
+        found, _ = _cache_images(cache, item_id)
+        if found:
+            source = "cache"
+            print(f"Cache hit para {item_id}: {len(found)} imagem(ns); consultas de rede ignoradas.")
+    if not found and item_id:
         found = images_from_items_api(item_id)
         if found:
+            source = "items_api"
             print(f"Imagens resolvidas via Items API pública: {len(found)}")
     if not found:
         found = images_from_public_product_ids(product)
         if found:
+            source = "public_product_id"
             print(f"Imagens resolvidas via identificador MLBU público: {len(found)}")
     if not found:
         found = images_from_public_search(product)
         if found:
+            source = "public_search"
             print(f"Imagens resolvidas via busca pública com correspondência exata: {len(found)}")
     if not found:
         found = images_from_listing_search(product)
         if found:
+            source = "listing"
             print(f"Imagem resolvida via card da listagem pública do Mercado Livre: {len(found)}")
     if not found:
         page_url = str(product.get("canonical_url") or product.get("source_url") or "").strip()
         found = images_from_product_page(page_url)
         if found:
+            source = "product_page"
             print(f"Imagens resolvidas via metadados da página: {len(found)}")
     combined = _dedupe(([existing_main] if existing_main else []) + existing_gallery + found)
     if not combined:
@@ -301,6 +371,9 @@ def enrich(path: Path) -> bool:
         return False
     main = existing_main or combined[0]
     gallery = _dedupe([main] + combined)
+    if source and source != "cache":
+        _save_cache(cache, product, gallery, source, cache_path)
+        print(f"Cache de imagens atualizado para {item_id}.")
     changed = False
     for field in ("main_image_url", "image_url"):
         if product.get(field) != main:

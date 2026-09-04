@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "publish": false,
+  "product": {
+    "source_url": "https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614&wid=MLB7273066334",
+    "canonical_url": "https://www.mercadolivre.com.br/adubo-fertilizante-npk-041408-1-kg-plantio-flores-e-frutos/up/MLBU4457612445?pdp_filters=seller_id%3A2705516614",
+    "title": "Adubo Fertilizante NPK 04-14-08 1 kg para plantio, flores e frutos",
+    "description": "Teste técnico de resolução pública de imagens.",
+    "image_url": "",
+    "main_image_url": "",
+    "gallery_images": [],
+    "item_id": "MLB7273066334"
+  },
+  "research": {
+    "queries": ["teste imagem NPK", "teste Mercado Livre imagem"],
+    "candidate_terms": ["npk 04-14-08", "adubo npk", "fertilizante 04-14-08", "npk 1 kg"],
+    "notes": "Job técnico somente para testar a resolução pública de imagens do mesmo anúncio, sem publicar página real."
+  },
+  "pages": [
+    {
+      "slug": "teste-imagem-publica-npk",
+      "heading": "Teste de imagem pública NPK 04-14-08",
+      "meta_description": "Teste técnico interno para validar resolução pública de imagens do anúncio do Mercado Livre sem autenticação.",
+      "intro": "Este é um job técnico criado apenas para testar a recuperação segura de imagens reais do anúncio sem alterar páginas publicadas.",
+      "why": "O teste verifica se alguma rota pública ligada ao item ou ao identificador MLBU fornece imagens reais do próprio anúncio.",
+      "observe": "Nenhuma imagem de concorrente, asset de frontend ou origem não confirmada deve ser aceita durante este teste.",
+      "faq_q": "Este teste publica uma página real?",
+      "faq_a": "Não. O campo publish está definido como false e o objetivo é somente validar o enriquecimento de imagem no workflow.",
+      "search_intent": "Testar resolução pública de imagens do mesmo anúncio sem autenticação.",
+      "candidate_terms": ["teste imagem Mercado Livre"]
+    }
+  ]
+}

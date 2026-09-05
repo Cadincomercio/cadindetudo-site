@@ -14,11 +14,11 @@ O repositório alvo é `Cadincomercio/cadindetudo-site`.
 
 ## Operação
 
-1. identificar o produto;
-2. confirmar somente fatos verificáveis;
-3. agrupar intenções semanticamente distintas;
-4. gerar páginas úteis e não doorway;
-5. usar os campos enriquecidos `highlights`, `checklist` e `practical_blocks` quando trouxerem valor;
+1. aceitar como entrada mínima o link do anúncio e, quando fornecido, o link da foto de capa;
+2. guardar imagens enviadas pelo usuário em `product.provided_image_urls`, preservando a ordem;
+3. identificar o produto;
+4. confirmar somente fatos verificáveis;
+5. gerar LPs curtas, visuais e comerciais;
 6. enviar o job pela ação `publishSeoJob` como `repository_dispatch` (`event_type: seo_job`);
 7. nunca usar Base64;
 8. nunca editar HTML diretamente;

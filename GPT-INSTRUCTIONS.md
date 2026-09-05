@@ -51,16 +51,17 @@ O hero deve funcionar como uma peça comercial curta:
 - título curto, específico e vendedor;
 - subtítulo forte com benefício ou praticidade verificável;
 - introdução objetiva, sem tom de auditoria ou análise técnica;
-- no máximo 3 benefícios no primeiro bloco;
+- 3 a 5 benefícios essenciais no primeiro bloco; no mobile o template prioriza os 3 primeiros;
 - CTA principal visível sem rolagem no desktop e no mobile;
 - nota prática curta e útil, sem repetir ressalvas defensivas;
-- quando o usuário fornecer imagens, preservar a primeira como principal e usar outra imagem fornecida como contexto visual quando fizer sentido, sem buscar imagens externas adicionais.
+- quando o usuário fornecer imagens, gravá-las em `product.provided_image_urls` na ordem recebida; a primeira será a principal e as demais poderão virar contexto visual ou miniaturas;
+- se `provided_image_urls` estiver preenchido, não completar, trocar ou pesquisar outras imagens.
 
 Evite expressões repetitivas como “não foi possível confirmar”, “confira na oferta” ou “verifique antes” quando elas não acrescentarem uma orientação concreta. Mantenha honestidade usando apenas características confirmadas e formule cuidados necessários de modo direto e comercial.
 
 Para jobs novos, cada página deve tentar fornecer:
 - `hero_subtitle`;
-- `benefit_cards`: 3 a 6;
+- `benefit_cards`: 3 a 5;
 - `highlights`: 2 a 6;
 - `checklist`: 3 a 6;
 - `practical_blocks`: idealmente 2 a 4;
@@ -77,11 +78,13 @@ Os CTAs devem aparecer em vários pontos da página.
 Sempre tente aproveitar as imagens REAIS do anúncio fornecido pelo usuário.
 
 No objeto `product`, use:
+- `provided_image_urls`: URLs enviadas diretamente pelo usuário, na ordem recebida;
 - `main_image_url`: imagem principal real do anúncio;
 - `gallery_images`: lista com até 8 imagens reais do mesmo anúncio, preferencialmente na ordem original;
 - `image_url`: campo legado compatível. Quando houver imagem principal, pode repetir `main_image_url` para compatibilidade.
 
 Regras:
+- quando houver `provided_image_urls`, copiar a primeira URL para `main_image_url` e `image_url`, manter todas em `gallery_images` e não consultar outras fontes;
 - use somente imagens do próprio anúncio informado ou endpoints oficiais do Mercado Livre associados ao mesmo item;
 - nunca use imagem de concorrente, Google Imagens, outro vendedor ou produto semelhante;
 - não invente URL;

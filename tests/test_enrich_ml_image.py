@@ -131,6 +131,30 @@ class PersistentImageCacheTest(unittest.TestCase):
             self.assertEqual(product["main_image_url"], supplied[0])
             self.assertEqual(product["gallery_images"], supplied)
 
+    def test_provided_images_skip_cache_and_every_resolver(self) -> None:
+        job = _job()
+        supplied = [IMAGE.replace("810823", str(value)) for value in ("111111", "222222")]
+        job["product"]["provided_image_urls"] = supplied
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache_path = root / "cache.json"
+            cache_path.write_text(json.dumps({ITEM_ID: {"main_image_url": IMAGE, "gallery_images": [IMAGE]}}), encoding="utf-8")
+            job_path = root / "job.json"
+            job_path.write_text(json.dumps(job), encoding="utf-8")
+            with (
+                mock.patch.object(resolver, "images_from_items_api", side_effect=AssertionError("network")),
+                mock.patch.object(resolver, "images_from_public_product_ids", side_effect=AssertionError("network")),
+                mock.patch.object(resolver, "images_from_public_search", side_effect=AssertionError("network")),
+                mock.patch.object(resolver, "images_from_listing_search", side_effect=AssertionError("network")),
+                mock.patch.object(resolver, "images_from_product_page", side_effect=AssertionError("network")),
+            ):
+                resolver.enrich(job_path, cache_path)
+            product = json.loads(job_path.read_text(encoding="utf-8"))["product"]
+            self.assertEqual(product["main_image_url"], supplied[0])
+            self.assertEqual(product["gallery_images"], supplied)
+            cache = json.loads(cache_path.read_text(encoding="utf-8"))
+            self.assertEqual(cache[ITEM_ID]["main_image_url"], IMAGE)
+
     def test_smaller_resolution_does_not_replace_larger_gallery(self) -> None:
         images = [
             f"https://http2.mlstatic.com/D_NQ_NP_10{i}-MLB12345678901_012026-O.webp"
@@ -178,7 +202,7 @@ class PublisherStructureTest(unittest.TestCase):
         self.assertIn(f'class="context-background" src="{second}"', rendered)
         self.assertLess(rendered.index(f'data-src="{IMAGE}"'), rendered.index(f'data-src="{second}"'))
         self.assertEqual(rendered.count('<button class="thumb"'), 2)
-        self.assertEqual(rendered.count('<li>'), 3)
+        self.assertEqual(rendered.count('<li>'), 5)
         self.assertEqual(rendered.count('data-cadin-cta="mercado-livre"'), 2)
         self.assertNotIn("{{GALLERY_HTML}}", rendered)
         self.assertNotIn("Dúvidas frequentes", rendered)

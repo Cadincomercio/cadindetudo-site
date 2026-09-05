@@ -27,6 +27,12 @@ def normalize(job: dict) -> dict:
         raise ValueError("Job precisa ser um objeto JSON")
 
     product = dict(job.get("product") or {})
+    provided_images = product.get("provided_image_urls") or []
+    if isinstance(provided_images, list) and provided_images:
+        # URLs fornecidas pelo usuário são a fonte de verdade, na ordem recebida.
+        product["main_image_url"] = provided_images[0]
+        product["image_url"] = provided_images[0]
+        product["gallery_images"] = provided_images
     if not product.get("canonical_url") and product.get("ml_url"):
         product["canonical_url"] = product["ml_url"]
     if not product.get("source_url"):
@@ -85,6 +91,7 @@ def validate(job: dict) -> None:
         raise ValueError("product.canonical_url precisa apontar para Mercado Livre")
 
     validate_string_list(product.get("highlights"), "product.highlights")
+    validate_string_list(product.get("provided_image_urls"), "product.provided_image_urls", max_items=8)
     validate_string_list(product.get("gallery_images"), "product.gallery_images", max_items=8)
 
     if not isinstance(research, dict):
@@ -123,7 +130,7 @@ def validate(job: dict) -> None:
         validate_string_list(page.get("candidate_terms"), f"pages[{slug}].candidate_terms", max_items=20, min_items=1)
         validate_string_list(page.get("highlights"), f"pages[{slug}].highlights")
         validate_string_list(page.get("checklist"), f"pages[{slug}].checklist")
-        validate_string_list(page.get("benefit_cards"), f"pages[{slug}].benefit_cards", max_items=6)
+        validate_string_list(page.get("benefit_cards"), f"pages[{slug}].benefit_cards", max_items=5)
         practical_note = page.get("practical_note")
         if practical_note is not None and not 20 <= len(str(practical_note).strip()) <= 360:
             raise ValueError(f"practical_note fora do limite em {slug}")
@@ -164,7 +171,7 @@ def highlights_html(items: list[str]) -> str:
 
 
 def benefits_html(items: list[str]) -> str:
-    return list_html(items[:3], "benefits")
+    return list_html(items[:5], "benefits")
 
 
 def gallery_html(product: dict, page: dict) -> str:

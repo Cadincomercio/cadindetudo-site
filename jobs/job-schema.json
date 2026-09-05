@@ -15,6 +15,11 @@
         "description": {"type": "string"},
         "image_url": {"type": "string"},
         "main_image_url": {"type": "string"},
+        "provided_image_urls": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {"type": "string", "minLength": 10}
+        },
         "gallery_images": {
           "type": "array",
           "maxItems": 8,
@@ -77,7 +82,7 @@
           "practical_note": {"type": "string", "minLength": 20, "maxLength": 360},
           "benefit_cards": {
             "type": "array",
-            "maxItems": 6,
+            "maxItems": 5,
             "items": {"type": "string", "minLength": 3, "maxLength": 100}
           },
           "highlights": {

@@ -337,6 +337,7 @@ def images_from_product_page(url: str) -> list[str]:
 def enrich(path: Path, cache_path: Path = CACHE_PATH) -> bool:
     job = json.loads(path.read_text(encoding="utf-8"))
     product = job.get("product") or {}
+    provided_images = _dedupe(product.get("provided_image_urls") or [])
     existing_main = _valid_image_url(product.get("main_image_url") or product.get("image_url"))
     existing_gallery = _dedupe(product.get("gallery_images") or [])
     item_id = _item_id_from_product(product)
@@ -345,7 +346,11 @@ def enrich(path: Path, cache_path: Path = CACHE_PATH) -> bool:
     cache = _load_cache(cache_path)
     found = []
     source = ""
-    if existing_main or existing_gallery:
+    if provided_images:
+        found = provided_images
+        source = "provided"
+        print(f"Imagens fornecidas pelo usuário: {len(found)}; cache e consultas de rede ignorados.")
+    elif existing_main or existing_gallery:
         # O job é a fonte de verdade: preserva a ordem enviada e não consulta cache/rede.
         found = _dedupe(existing_gallery or [existing_main])
         source = "job"
@@ -381,13 +386,14 @@ def enrich(path: Path, cache_path: Path = CACHE_PATH) -> bool:
         if found:
             source = "product_page"
             print(f"Imagens resolvidas via metadados da página: {len(found)}")
-    combined = found if source == "job" else _dedupe(([existing_main] if existing_main else []) + existing_gallery + found)
+    authoritative_job_images = source in {"job", "provided"}
+    combined = found if authoritative_job_images else _dedupe(([existing_main] if existing_main else []) + existing_gallery + found)
     if not combined:
         print("Não foi possível resolver imagem real e confiável sem autenticação; mantendo campos vazios.")
         return False
-    main = combined[0] if source == "job" else existing_main or combined[0]
-    gallery = combined if source == "job" else _dedupe([main] + combined)
-    if source and source != "cache":
+    main = combined[0] if authoritative_job_images else existing_main or combined[0]
+    gallery = combined if authoritative_job_images else _dedupe([main] + combined)
+    if source and source not in {"cache", "provided"}:
         _save_cache(cache, product, gallery, source, cache_path)
         print(f"Cache de imagens atualizado para {item_id}.")
     changed = False

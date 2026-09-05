@@ -188,46 +188,56 @@ class PublisherStructureTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Máximo de 20 páginas"):
             publisher.validate(self._valid_job_with_pages(21))
 
-    def test_short_template_uses_gallery_in_supplied_order(self) -> None:
-        template = (REPOSITORY_ROOT / "templates" / "landing.html").read_text(encoding="utf-8")
-        job = self._valid_job_with_pages(1)
-        product = job["product"]
-        product["main_image_url"] = IMAGE
-        product["gallery_images"] = [IMAGE, IMAGE.replace("810823", "999999")]
-        job["pages"][0]["benefit_cards"] = ["Um", "Dois", "Três", "Quatro", "Cinco"]
-        rendered = publisher.render(template, product, job["pages"][0])
-        second = IMAGE.replace("810823", "999999")
-        self.assertIn('class="product-card"', rendered)
-        self.assertIn(f'data-gallery-main fetchpriority="high" src="{IMAGE}"', rendered)
-        self.assertIn(f'class="context-background" src="{second}"', rendered)
-        self.assertLess(rendered.index(f'data-src="{IMAGE}"'), rendered.index(f'data-src="{second}"'))
-        self.assertEqual(rendered.count('<button class="thumb"'), 2)
-        self.assertEqual(rendered.count('<li>'), 5)
+    def _creative_product(self):
+        return json.loads((REPOSITORY_ROOT / "jobs/processed/controle-samsung-creative.json").read_text(encoding="utf-8"))["product"]
+
+    def test_single_art_responsive_and_tracking_contract(self):
+        template = (REPOSITORY_ROOT / "templates/landing.html").read_text(encoding="utf-8")
+        product = self._creative_product()
+        page = self._valid_job_with_pages(1)["pages"][0]
+        rendered = publisher.render(template, product, page)
+        self.assertIn('<picture>', rendered)
+        self.assertIn('media="(max-width: 700px)"', rendered)
+        self.assertIn(product["creative_assets"]["mobile"]["src"], rendered)
+        self.assertIn(product["creative_assets"]["desktop"]["src"], rendered)
         self.assertEqual(rendered.count('data-cadin-cta="mercado-livre"'), 2)
-        self.assertNotIn("{{GALLERY_HTML}}", rendered)
-        self.assertNotIn("Dúvidas frequentes", rendered)
+        self.assertIn('noindex,nofollow', rendered)
+        self.assertIn('/assets/tracking.js', rendered)
+        self.assertIn('COMPRAR AGORA', rendered)
+        self.assertIn('class="sr-only"', rendered)
+        for old in ['product-card', 'data-gallery', '<li>', 'Nota prática', '{{']:
+            self.assertNotIn(old, rendered)
 
-    def test_gallery_does_not_prepend_a_different_main_when_job_supplies_images(self) -> None:
-        template = (REPOSITORY_ROOT / "templates" / "landing.html").read_text(encoding="utf-8")
-        job = self._valid_job_with_pages(1)
-        product = job["product"]
-        supplied = [IMAGE.replace("810823", str(value)) for value in ("111111", "222222", "333333")]
-        product["main_image_url"] = IMAGE
-        product["gallery_images"] = supplied
-        rendered = publisher.render(template, product, job["pages"][0])
-        self.assertIn(f'data-gallery-main fetchpriority="high" src="{supplied[0]}"', rendered)
-        self.assertNotIn(IMAGE, rendered)
+    def test_catalog_photo_cannot_be_published_as_finished_ad(self):
+        product = self._creative_product()
+        product.pop("creative_assets")
+        with self.assertRaisesRegex(ValueError, "Artes pendentes"):
+            publisher.render("", product, {})
 
-    def test_single_image_has_no_redundant_thumbnail(self) -> None:
-        template = (REPOSITORY_ROOT / "templates" / "landing.html").read_text(encoding="utf-8")
+    def test_missing_or_reused_mobile_is_rejected(self):
+        product = self._creative_product()
+        product["creative_assets"]["mobile"]["src"] = "/assets/creatives/absent.png"
+        with self.assertRaisesRegex(ValueError, "Arte ausente"):
+            publisher.creative_assets(product)
+        product = self._creative_product()
+        product["creative_assets"]["mobile"]["src"] = product["creative_assets"]["desktop"]["src"]
+        with self.assertRaisesRegex(ValueError, "dedicada"):
+            publisher.creative_assets(product)
+
+    def test_pending_assets_do_not_overwrite_existing_page(self):
         job = self._valid_job_with_pages(1)
-        job["product"]["main_image_url"] = IMAGE
-        job["product"]["gallery_images"] = [IMAGE]
-        job["pages"][0]["context_image_url"] = ""
-        rendered = publisher.render(template, job["product"], job["pages"][0])
-        self.assertIn(f'data-gallery-main fetchpriority="high" src="{IMAGE}"', rendered)
-        self.assertNotIn('<button class="thumb"', rendered)
-        self.assertNotIn('<img class="context-background"', rendered)
+        job["publish"] = True
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            page = root / job["pages"][0]["slug"] / "index.html"
+            page.parent.mkdir()
+            page.write_text("existing", encoding="utf-8")
+            job_path = root / "job.json"
+            job_path.write_text(json.dumps(job), encoding="utf-8")
+            with mock.patch.object(publisher, "ROOT", root):
+                with self.assertRaisesRegex(ValueError, "Artes pendentes"):
+                    publisher.publish(job_path)
+            self.assertEqual(page.read_text(encoding="utf-8"), "existing")
 
 
 if __name__ == "__main__":

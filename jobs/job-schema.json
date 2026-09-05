@@ -2,56 +2,178 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Cadin SEO Job",
   "type": "object",
-  "required": ["version", "product", "research", "pages", "publish"],
+  "required": [
+    "version",
+    "product",
+    "research",
+    "pages",
+    "publish"
+  ],
   "properties": {
-    "version": {"type": "integer", "const": 1},
-    "publish": {"type": "boolean"},
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "publish": {
+      "type": "boolean"
+    },
     "product": {
       "type": "object",
-      "required": ["source_url", "title", "canonical_url"],
+      "required": [
+        "source_url",
+        "title",
+        "canonical_url"
+      ],
       "properties": {
-        "source_url": {"type": "string", "minLength": 10},
-        "title": {"type": "string", "minLength": 3},
-        "description": {"type": "string"},
-        "image_url": {"type": "string"},
-        "main_image_url": {"type": "string"},
+        "source_url": {
+          "type": "string",
+          "minLength": 10
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3
+        },
+        "description": {
+          "type": "string"
+        },
+        "image_url": {
+          "type": "string"
+        },
+        "main_image_url": {
+          "type": "string"
+        },
         "provided_image_urls": {
           "type": "array",
           "maxItems": 8,
-          "items": {"type": "string", "minLength": 10}
+          "items": {
+            "type": "string",
+            "minLength": 10
+          }
         },
         "gallery_images": {
           "type": "array",
           "maxItems": 8,
-          "items": {"type": "string", "minLength": 10}
+          "items": {
+            "type": "string",
+            "minLength": 10
+          }
         },
-        "canonical_url": {"type": "string", "minLength": 10},
-        "item_id": {"type": "string"},
+        "canonical_url": {
+          "type": "string",
+          "minLength": 10
+        },
+        "item_id": {
+          "type": "string"
+        },
         "highlights": {
           "type": "array",
           "maxItems": 8,
-          "items": {"type": "string", "minLength": 2}
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        },
+        "creative_assets": {
+          "type": "object",
+          "required": [
+            "status",
+            "desktop",
+            "mobile",
+            "description"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pending",
+                "ready"
+              ]
+            },
+            "description": {
+              "type": "string",
+              "minLength": 10
+            },
+            "desktop": {
+              "type": "object",
+              "required": [
+                "src",
+                "width",
+                "height"
+              ],
+              "properties": {
+                "src": {
+                  "type": "string",
+                  "pattern": "^/assets/creatives/"
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 320
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 320
+                }
+              },
+              "additionalProperties": false
+            },
+            "mobile": {
+              "type": "object",
+              "required": [
+                "src",
+                "width",
+                "height"
+              ],
+              "properties": {
+                "src": {
+                  "type": "string",
+                  "pattern": "^/assets/creatives/"
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 320
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 320
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
     },
     "research": {
       "type": "object",
-      "required": ["queries", "candidate_terms", "notes"],
+      "required": [
+        "queries",
+        "candidate_terms",
+        "notes"
+      ],
       "properties": {
         "queries": {
           "type": "array",
           "minItems": 2,
           "maxItems": 30,
-          "items": {"type": "string", "minLength": 3}
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
         },
         "candidate_terms": {
           "type": "array",
           "minItems": 4,
           "maxItems": 80,
-          "items": {"type": "string", "minLength": 3}
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
         },
-        "notes": {"type": "string", "minLength": 30}
+        "notes": {
+          "type": "string",
+          "minLength": 30
+        }
       },
       "additionalProperties": false
     },
@@ -61,49 +183,118 @@
       "maxItems": 20,
       "items": {
         "type": "object",
-        "required": ["slug", "heading", "meta_description", "intro", "why", "observe", "faq_q", "faq_a", "search_intent", "candidate_terms"],
+        "required": [
+          "slug",
+          "heading",
+          "meta_description",
+          "intro",
+          "why",
+          "observe",
+          "faq_q",
+          "faq_a",
+          "search_intent",
+          "candidate_terms"
+        ],
         "properties": {
-          "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
-          "heading": {"type": "string", "minLength": 5},
-          "meta_description": {"type": "string", "minLength": 30, "maxLength": 180},
-          "intro": {"type": "string", "minLength": 50},
-          "why": {"type": "string", "minLength": 50},
-          "observe": {"type": "string", "minLength": 40},
-          "faq_q": {"type": "string", "minLength": 10},
-          "faq_a": {"type": "string", "minLength": 30},
-          "search_intent": {"type": "string", "minLength": 10},
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "heading": {
+            "type": "string",
+            "minLength": 5
+          },
+          "meta_description": {
+            "type": "string",
+            "minLength": 30,
+            "maxLength": 180
+          },
+          "intro": {
+            "type": "string",
+            "minLength": 50
+          },
+          "why": {
+            "type": "string",
+            "minLength": 50
+          },
+          "observe": {
+            "type": "string",
+            "minLength": 40
+          },
+          "faq_q": {
+            "type": "string",
+            "minLength": 10
+          },
+          "faq_a": {
+            "type": "string",
+            "minLength": 30
+          },
+          "search_intent": {
+            "type": "string",
+            "minLength": 10
+          },
           "candidate_terms": {
             "type": "array",
             "minItems": 1,
             "maxItems": 20,
-            "items": {"type": "string", "minLength": 3}
+            "items": {
+              "type": "string",
+              "minLength": 3
+            }
           },
-          "hero_subtitle": {"type": "string", "minLength": 20, "maxLength": 260},
-          "practical_note": {"type": "string", "minLength": 20, "maxLength": 360},
+          "hero_subtitle": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 260
+          },
+          "practical_note": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 360
+          },
           "benefit_cards": {
             "type": "array",
             "maxItems": 5,
-            "items": {"type": "string", "minLength": 3, "maxLength": 100}
+            "items": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 100
+            }
           },
           "highlights": {
             "type": "array",
             "maxItems": 8,
-            "items": {"type": "string", "minLength": 2}
+            "items": {
+              "type": "string",
+              "minLength": 2
+            }
           },
           "checklist": {
             "type": "array",
             "maxItems": 8,
-            "items": {"type": "string", "minLength": 5}
+            "items": {
+              "type": "string",
+              "minLength": 5
+            }
           },
           "practical_blocks": {
             "type": "array",
             "maxItems": 4,
             "items": {
               "type": "object",
-              "required": ["title", "body"],
+              "required": [
+                "title",
+                "body"
+              ],
               "properties": {
-                "title": {"type": "string", "minLength": 5},
-                "body": {"type": "string", "minLength": 40}
+                "title": {
+                  "type": "string",
+                  "minLength": 5
+                },
+                "body": {
+                  "type": "string",
+                  "minLength": 40
+                }
               },
               "additionalProperties": false
             }
@@ -113,19 +304,45 @@
             "maxItems": 4,
             "items": {
               "type": "object",
-              "required": ["question", "answer"],
+              "required": [
+                "question",
+                "answer"
+              ],
               "properties": {
-                "question": {"type": "string", "minLength": 10},
-                "answer": {"type": "string", "minLength": 30}
+                "question": {
+                  "type": "string",
+                  "minLength": 10
+                },
+                "answer": {
+                  "type": "string",
+                  "minLength": 30
+                }
               },
               "additionalProperties": false
             }
           },
-          "closing_text": {"type": "string", "minLength": 20, "maxLength": 500},
-          "cta_primary_label": {"type": "string", "minLength": 3, "maxLength": 80},
-          "cta_secondary_label": {"type": "string", "minLength": 3, "maxLength": 80},
-          "image_theme": {"type": "string", "maxLength": 220},
-          "context_image_url": {"type": "string"}
+          "closing_text": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 500
+          },
+          "cta_primary_label": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 80
+          },
+          "cta_secondary_label": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 80
+          },
+          "image_theme": {
+            "type": "string",
+            "maxLength": 220
+          },
+          "context_image_url": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       }

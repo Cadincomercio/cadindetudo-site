@@ -7,6 +7,10 @@ on:
         description: "URL do anuncio do Mercado Livre"
         required: true
         type: string
+      cover_url:
+        description: "URL da foto real de capa do produto"
+        required: true
+        type: string
       max_pages:
         description: "Quantidade maxima de paginas candidatas"
         required: false
@@ -39,13 +43,14 @@ jobs:
       - name: Gerar paginas
         env:
           ML_URL: ${{ inputs.ml_url }}
+          COVER_URL: ${{ inputs.cover_url }}
           MAX_PAGES: ${{ inputs.max_pages }}
           SITE_URL: https://cadindetudo.com
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python scripts/generate_seo.py \
             --url "$ML_URL" \
-            --max-pages "$MAX_PAGES"
+            --cover-url "$COVER_URL"
 
       - name: Mostrar alteracoes
         run: git status --short

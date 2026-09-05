@@ -37,7 +37,7 @@ jobs:
 
       - name: Validar Python e schema
         run: |
-          python -m py_compile scripts/enrich_ml_image.py scripts/publish_gpt_job.py scripts/generate_seo.py
+          python -m py_compile scripts/enrich_ml_image.py scripts/publish_gpt_job.py scripts/generate_seo.py scripts/prepare_creative.py
           python -c "import json, pathlib; json.loads(pathlib.Path('jobs/job-schema.json').read_text(encoding='utf-8'))"
 
       - name: Executar testes

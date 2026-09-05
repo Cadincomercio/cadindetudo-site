@@ -313,15 +313,7 @@ def save_product(product: Product) -> None:
 
 
 def generate_pages(product: Product, clusters: Iterable[dict]) -> list[str]:
-    template = TEMPLATE_PATH.read_text(encoding="utf-8")
-    generated = []
-    for cluster in clusters:
-        slug = cluster["slug"]
-        page_dir = ROOT / slug
-        page_dir.mkdir(parents=True, exist_ok=True)
-        (page_dir / "index.html").write_text(render_template(template, product, cluster), encoding="utf-8")
-        generated.append(slug)
-    return generated
+    raise ValueError("Use prepare_creative.py: duas artes prontas são obrigatórias")
 
 
 def remove_legacy_duplicate(generated_slugs: Iterable[str]) -> None:
@@ -359,21 +351,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    args = parse_args()
-    if "mercadolivre.com" not in args.url and "mercadolivre.com.br" not in args.url:
-        print("A URL informada não parece ser do Mercado Livre.", file=sys.stderr)
-        return 2
-    max_pages = min(max(args.max_pages, 1), 20)
-    product = extract_product(args.url)
-    if product.title.lower() in {"mercado libre", "mercado livre"}:
-        print("Não foi possível identificar o produto com segurança; nada foi publicado.", file=sys.stderr)
-        return 3
-    save_product(product)
-    clusters = infer_clusters(product, max_pages=max_pages)
-    slugs = generate_pages(product, clusters)
-    remove_legacy_duplicate(slugs)
-    build_sitemap(slugs)
-    print(json.dumps({"produto":product.title,"item_id":product.item_id,"imagem":bool(product.image),"paginas":slugs,"total":len(slugs)}, ensure_ascii=False, indent=2))
+    # Legacy entry point delegates to the two-input creative preparation flow.
+    from prepare_creative import prepare
+    parser = argparse.ArgumentParser(description="Prepara duas artes a partir do anúncio e foto")
+    parser.add_argument("--url", required=True)
+    parser.add_argument("--cover-url", required=True)
+    parser.add_argument("--max-pages", type=int, default=1, help="Legado; uma peça por produto")
+    args = parser.parse_args()
+    print(prepare(args.url, args.cover_url))
     return 0
 
 

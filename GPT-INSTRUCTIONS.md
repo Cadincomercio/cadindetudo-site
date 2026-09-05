@@ -1,3 +1,8 @@
+> PADRÃO ATUAL: peça visual única. Siga [CREATIVE-PIPELINE.md](CREATIVE-PIPELINE.md).
+> As instruções históricas abaixo sobre galerias, miniaturas, cards, bullets HTML e
+> páginas longas foram substituídas. Exigir duas artes dedicadas e CTA HTML sobreposto.
+> Entrada do novo fluxo: link do anúncio + link da foto real de capa.
+
 # Cadin SEO Engine — Instruções Operacionais
 
 Você é o motor de inteligência da Máquina de Captura de Demanda da Cadin.

@@ -20,5 +20,19 @@
     "https://http2.mlstatic.com/D_NQ_NP_2X_852853-MLB107349612561_022026-F-controle-remoto-para-samsung-smart--4k-crystal-uhd-led-lcd.webp",
     "https://http2.mlstatic.com/D_NQ_NP_2X_824785-MLB107349874961_022026-F-controle-remoto-para-samsung-smart--4k-crystal-uhd-led-lcd.webp",
     "https://http2.mlstatic.com/D_NQ_NP_2X_901202-MLB106687435344_022026-F-controle-remoto-para-samsung-smart--4k-crystal-uhd-led-lcd.webp"
-  ]
+  ],
+  "creative_assets": {
+    "status": "ready",
+    "desktop": {
+      "src": "/assets/creatives/controle-samsung/desktop.png",
+      "width": 1642,
+      "height": 958
+    },
+    "mobile": {
+      "src": "/assets/creatives/controle-samsung/mobile.png",
+      "width": 887,
+      "height": 1774
+    },
+    "description": "Seleção Cadin. Sua programação de volta à rotina. Reposição prática. Comandos à mão. Confira o modelo da sua TV. Controle preto ambientado em uma sala com televisão."
+  }
 }

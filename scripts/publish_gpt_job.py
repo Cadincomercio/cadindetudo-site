@@ -156,192 +156,53 @@ def validate(job: dict) -> None:
                     raise ValueError(f"faqs incompleto em {slug}")
 
 
-def list_html(items: list[str], css_class: str = "facts") -> str:
-    if not items:
-        return ""
-    lis = "".join(f"<li>{esc(item)}</li>" for item in items)
-    return f'<ul class="{css_class}">{lis}</ul>'
-
-
-def highlights_html(items: list[str]) -> str:
-    if not items:
-        return ""
-    chips = "".join(f'<div class="chip">{esc(item)}</div>' for item in items)
-    return f'<div class="chips">{chips}</div>'
-
-
-def benefits_html(items: list[str]) -> str:
-    return list_html(items[:5], "benefits")
-
-
-def gallery_html(product: dict, page: dict) -> str:
-    gallery = product.get("gallery_images") or []
-    if not isinstance(gallery, list):
-        gallery = []
-    images, seen = [], set()
-    for value in gallery:
-        image = str(value or "").strip()
-        if image and image not in seen:
-            images.append(image)
-            seen.add(image)
-
-    main = _main_image(product)
-    if not images and main:
-        images = [main]
-    if not images:
-        return '<div class="gallery"><div class="visual-theme">' + esc(product.get("title") or "Produto selecionado") + '</div></div>'
-
-    title = str(product.get("title") or "Produto").strip()
-    context_image = images[1] if len(images) > 1 else str(page.get("context_image_url") or "").strip()
-    if context_image == images[0]:
-        context_image = ""
-    thumbs = []
-    for index, image in enumerate(images):
-        alt = f"{title} — imagem {index + 1}"
-        current = "true" if index == 0 else "false"
-        thumbs.append(
-            f'<button class="thumb" type="button" data-gallery-thumb data-src="{esc(image, quote=True)}" '
-            f'data-alt="{esc(alt, quote=True)}" aria-label="Ver imagem {index + 1}" aria-current="{current}">'
-            f'<img loading="lazy" src="{esc(image, quote=True)}" alt=""></button>'
-        )
-    main_alt = f"{title} — imagem 1"
-    context = ""
-    if context_image:
-        context = (
-            f'<img class="context-background" src="{esc(context_image, quote=True)}" alt="" '
-            'aria-hidden="true" onerror="this.style.display=\'none\'">'
-        )
-    thumbs_html = ""
-    if len(images) > 1:
-        thumbs_html = '<div class="thumbs" aria-label="Galeria do produto">' + "".join(thumbs) + '</div>'
-    return (
-        '<div class="gallery"><div class="visual-stage">' + context +
-        '<div class="visual-overlay"></div><div class="main-photo">'
-        f'<img data-gallery-main fetchpriority="high" src="{esc(images[0], quote=True)}" alt="{esc(main_alt, quote=True)}">'
-        '</div></div>' + thumbs_html + '</div>'
-    )
-
-
-def benefit_section_html(items: list[str]) -> str:
-    if not items:
-        return ""
-    cards = "".join(f'<div class="benefit">{esc(item)}</div>' for item in items)
-    return '<section class="section"><h2>Principais pontos para sua decisão</h2><div class="benefits">' + cards + '</div><div class="cta-row"><a class="cta cta-primary" data-cadin-cta="mercado-livre" href="{{ML_URL}}" target="_blank" rel="noopener">{{CTA_PRIMARY}}</a></div></section>'
-
-
-def practical_blocks_html(blocks: list[dict]) -> str:
-    if not blocks:
-        return ""
-    inner = []
-    for block in blocks:
-        inner.append(
-            '<div class="practical-block">'
-            f'<h3>{esc(block.get("title"))}</h3>'
-            f'<p>{esc(block.get("body"))}</p>'
-            '</div>'
-        )
-    return '<section class="section"><h2>Orientações práticas</h2><div class="practical-grid">' + "".join(inner) + '</div><div class="cta-row"><a class="cta cta-secondary" data-cadin-cta="mercado-livre" href="{{ML_URL}}" target="_blank" rel="noopener">{{CTA_SECONDARY}}</a></div></section>'
-
-
-def faqs_html(page: dict) -> str:
-    faqs = page.get("faqs") or []
-    if not faqs:
-        faqs = [{"question": page.get("faq_q"), "answer": page.get("faq_a")}]
-    parts = []
-    for faq in faqs:
-        parts.append(
-            '<div class="faq-item">'
-            f'<h3>{esc(faq.get("question"))}</h3>'
-            f'<p>{esc(faq.get("answer"))}</p>'
-            '</div>'
-        )
-    return "".join(parts)
-
-
-def _main_image(product: dict) -> str:
-    return str(product.get("main_image_url") or product.get("image_url") or "").strip()
-
-
-def hero_visual_html(product: dict, page: dict) -> str:
-    image = _main_image(product)
-    if image:
-        return (
-            f'<img class="product-image" src="{esc(image, quote=True)}" '
-            f'alt="{esc(product.get("title"), quote=True)}" onerror="this.style.display=\'none\'">'
-        )
-    theme = str(page.get("image_theme") or page.get("search_intent") or product.get("title") or "").strip()
-    return '<div class="visual-theme"><div class="icon">🌿</div><strong>Contexto de uso</strong><span>' + esc(theme) + '</span></div>'
-
-
-def offer_visual_html(product: dict) -> str:
-    image = _main_image(product)
-    if not image:
-        return ""
-    return (
-        '<div class="offer-photo"><img class="product-image" loading="lazy" '
-        f'src="{esc(image, quote=True)}" alt="{esc(product.get("title"), quote=True)}" '
-        'onerror="this.closest(\'.offer-photo\').style.display=\'none\'"></div>'
-    )
-
-
-def context_visual_html(page: dict) -> str:
-    image = str(page.get("context_image_url") or "").strip()
-    theme = str(page.get("image_theme") or "").strip()
-    if image:
-        return '<section class="section"><h2>Visualize esta aplicação</h2><img class="context-image" src="' + esc(image, quote=True) + '" alt="' + esc(theme or "Aplicação do produto", quote=True) + '" onerror="this.closest(\'section\').style.display=\'none\'"></section>'
-    if theme:
-        return '<section class="section"><h2>Onde esta solução se encaixa</h2><div class="visual-theme"><div class="icon">🔎</div><strong>Aplicação pesquisada</strong><span>' + esc(theme) + '</span></div></section>'
-    return ""
+def creative_assets(product: dict) -> dict:
+    """Fail closed: a catalog photo is never a replacement for a finished ad."""
+    assets = product.get("creative_assets") or {}
+    if assets.get("status") != "ready":
+        raise ValueError("Artes pendentes: prepare desktop e mobile conforme CREATIVE-PIPELINE.md")
+    paths = []
+    for kind in ("desktop", "mobile"):
+        asset = assets.get(kind) or {}
+        url = str(asset.get("src") or "")
+        if not url.startswith("/assets/creatives/") or ".." in url or "\\" in url:
+            raise ValueError("Arte deve estar em /assets/creatives/")
+        path = (ROOT / url.lstrip("/")).resolve()
+        if not path.is_relative_to((ROOT / "assets/creatives").resolve()) or not path.is_file():
+            raise ValueError(f"Arte ausente: {url}")
+        width, height = asset.get("width", 0), asset.get("height", 0)
+        if not isinstance(width, int) or not isinstance(height, int) or min(width, height) < 320:
+            raise ValueError("Dimensões inválidas para a arte")
+        if (kind == "desktop" and width <= height) or (kind == "mobile" and height <= width):
+            raise ValueError("Desktop deve ser landscape e mobile portrait dedicado")
+        paths.append(path)
+    if paths[0] == paths[1] or paths[0].read_bytes() == paths[1].read_bytes():
+        raise ValueError("Mobile precisa de uma arte dedicada")
+    if not str(assets.get("description") or "").strip():
+        raise ValueError("Informe a transcrição acessível da arte")
+    return assets
 
 
 def render(template: str, product: dict, page: dict) -> str:
-    description = str(product.get("description") or "").strip()
-    if not description:
-        description = f"Oferta do produto {product['title']} no Mercado Livre."
-
-    highlights = page.get("highlights")
-    if highlights is None:
-        highlights = product.get("highlights") or []
-
-    benefit_cards = page.get("benefit_cards") or highlights or []
-    hero_subtitle = str(page.get("hero_subtitle") or page.get("search_intent") or page.get("intro") or "").strip()
-    closing_text = str(page.get("closing_text") or description).strip()
-    cta_primary = str(page.get("cta_primary_label") or "COMPRAR AGORA NO MERCADO LIVRE").strip()
-    cta_secondary = str(page.get("cta_secondary_label") or "VER PREÇO E ENTREGA").strip()
-
-    replacements = {
-        "{{TITLE}}": esc(f"{page['heading']} | Cadin de Tudo"),
-        "{{META_DESCRIPTION}}": esc(page["meta_description"]),
-        "{{H1}}": esc(page["heading"]),
-        "{{INTRO}}": esc(page["intro"]),
-        "{{HERO_SUBTITLE}}": esc(hero_subtitle),
-        "{{HERO_VISUAL_HTML}}": hero_visual_html(product, page),
-        "{{GALLERY_HTML}}": gallery_html(product, page),
-        "{{OFFER_VISUAL_HTML}}": offer_visual_html(product),
-        "{{HIGHLIGHTS_HTML}}": highlights_html(highlights),
-        "{{BENEFIT_SECTION_HTML}}": benefit_section_html(benefit_cards),
-        "{{BENEFITS_HTML}}": benefits_html(benefit_cards),
-        "{{PRODUCT_TITLE}}": esc(product["title"]),
-        "{{ML_URL}}": esc(product["canonical_url"], quote=True),
-        "{{WHY}}": esc(page["why"]),
-        "{{OBSERVE}}": esc(page["observe"]),
-        "{{PRACTICAL_NOTE}}": esc(page.get("practical_note") or page["observe"]),
-        "{{CHECKLIST_HTML}}": list_html(page.get("checklist") or []),
-        "{{CONTEXT_VISUAL_HTML}}": context_visual_html(page),
-        "{{PRACTICAL_BLOCKS_HTML}}": practical_blocks_html(page.get("practical_blocks") or []),
-        "{{FAQS_HTML}}": faqs_html(page),
-        "{{PRODUCT_DESCRIPTION}}": esc(description),
-        "{{CLOSING_TEXT}}": esc(closing_text),
-        "{{CTA_PRIMARY}}": esc(cta_primary),
-        "{{CTA_SECONDARY}}": esc(cta_secondary),
-        "{{TRACK_PRODUCT}}": esc(product.get("item_id") or product["title"], quote=True),
-        "{{TRACK_PAGE}}": esc(page["slug"], quote=True),
-        "{{TRACK_DESTINATION}}": esc(product["canonical_url"], quote=True),
+    assets = creative_assets(product)
+    values = {
+        "TITLE": f"{page['heading']} | Cadin de Tudo",
+        "META_DESCRIPTION": page["meta_description"],
+        "H1": page["heading"],
+        "ART_DESCRIPTION": assets["description"],
+        "ML_URL": product["canonical_url"],
+        "TRACK_PRODUCT": product.get("item_id") or product["title"],
+        "TRACK_PAGE": page["slug"],
+        "DESKTOP_ART": assets["desktop"]["src"],
+        "MOBILE_ART": assets["mobile"]["src"],
+        "DW": assets["desktop"]["width"], "DH": assets["desktop"]["height"],
+        "MW": assets["mobile"]["width"], "MH": assets["mobile"]["height"],
     }
     output = template
-    for _ in range(2):
-        for needle, value in replacements.items():
-            output = output.replace(needle, value)
+    for key, value in values.items():
+        output = output.replace("{{" + key + "}}", esc(value, quote=True))
+    if "{{" in output:
+        raise ValueError("Template contém campos não preenchidos")
     return output
 
 
@@ -372,6 +233,7 @@ def publish(job_path: Path) -> list[str]:
 
     product = job["product"]
     template = TEMPLATE.read_text(encoding="utf-8")
+    creative_assets(product)
     slugs = []
 
     for page in job["pages"]:

@@ -170,12 +170,15 @@ class PublisherStructureTest(unittest.TestCase):
         product = job["product"]
         product["main_image_url"] = IMAGE
         product["gallery_images"] = [IMAGE, IMAGE.replace("810823", "999999")]
+        job["pages"][0]["benefit_cards"] = ["Um", "Dois", "Três", "Quatro", "Cinco"]
         rendered = publisher.render(template, product, job["pages"][0])
         second = IMAGE.replace("810823", "999999")
         self.assertIn('class="product-card"', rendered)
-        self.assertIn(f'data-gallery-main src="{IMAGE}"', rendered)
-        self.assertLess(rendered.index(IMAGE), rendered.index(second))
+        self.assertIn(f'data-gallery-main fetchpriority="high" src="{IMAGE}"', rendered)
+        self.assertIn(f'class="context-background" src="{second}"', rendered)
+        self.assertLess(rendered.index(f'data-src="{IMAGE}"'), rendered.index(f'data-src="{second}"'))
         self.assertEqual(rendered.count('<button class="thumb"'), 2)
+        self.assertEqual(rendered.count('<li>'), 3)
         self.assertEqual(rendered.count('data-cadin-cta="mercado-livre"'), 2)
         self.assertNotIn("{{GALLERY_HTML}}", rendered)
         self.assertNotIn("Dúvidas frequentes", rendered)
@@ -188,8 +191,19 @@ class PublisherStructureTest(unittest.TestCase):
         product["main_image_url"] = IMAGE
         product["gallery_images"] = supplied
         rendered = publisher.render(template, product, job["pages"][0])
-        self.assertIn(f'data-gallery-main src="{supplied[0]}"', rendered)
+        self.assertIn(f'data-gallery-main fetchpriority="high" src="{supplied[0]}"', rendered)
         self.assertNotIn(IMAGE, rendered)
+
+    def test_single_image_has_no_redundant_thumbnail(self) -> None:
+        template = (REPOSITORY_ROOT / "templates" / "landing.html").read_text(encoding="utf-8")
+        job = self._valid_job_with_pages(1)
+        job["product"]["main_image_url"] = IMAGE
+        job["product"]["gallery_images"] = [IMAGE]
+        job["pages"][0]["context_image_url"] = ""
+        rendered = publisher.render(template, job["product"], job["pages"][0])
+        self.assertIn(f'data-gallery-main fetchpriority="high" src="{IMAGE}"', rendered)
+        self.assertNotIn('<button class="thumb"', rendered)
+        self.assertNotIn('<img class="context-background"', rendered)
 
 
 if __name__ == "__main__":

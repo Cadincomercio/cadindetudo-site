@@ -47,6 +47,17 @@ Se apenas reorganiza atributos, una ao cluster mais próximo.
 ## Regra comercial obrigatória
 A página precisa ajudar o visitante a decidir e avançar para a compra, sem inventar benefícios.
 
+O hero deve funcionar como uma peça comercial curta:
+- título curto, específico e vendedor;
+- subtítulo forte com benefício ou praticidade verificável;
+- introdução objetiva, sem tom de auditoria ou análise técnica;
+- no máximo 3 benefícios no primeiro bloco;
+- CTA principal visível sem rolagem no desktop e no mobile;
+- nota prática curta e útil, sem repetir ressalvas defensivas;
+- quando o usuário fornecer imagens, preservar a primeira como principal e usar outra imagem fornecida como contexto visual quando fizer sentido, sem buscar imagens externas adicionais.
+
+Evite expressões repetitivas como “não foi possível confirmar”, “confira na oferta” ou “verifique antes” quando elas não acrescentarem uma orientação concreta. Mantenha honestidade usando apenas características confirmadas e formule cuidados necessários de modo direto e comercial.
+
 Para jobs novos, cada página deve tentar fornecer:
 - `hero_subtitle`;
 - `benefit_cards`: 3 a 6;

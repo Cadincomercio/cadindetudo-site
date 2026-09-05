@@ -164,10 +164,10 @@ def highlights_html(items: list[str]) -> str:
 
 
 def benefits_html(items: list[str]) -> str:
-    return list_html(items[:6], "benefits")
+    return list_html(items[:3], "benefits")
 
 
-def gallery_html(product: dict) -> str:
+def gallery_html(product: dict, page: dict) -> str:
     gallery = product.get("gallery_images") or []
     if not isinstance(gallery, list):
         gallery = []
@@ -185,6 +185,9 @@ def gallery_html(product: dict) -> str:
         return '<div class="gallery"><div class="visual-theme">' + esc(product.get("title") or "Produto selecionado") + '</div></div>'
 
     title = str(product.get("title") or "Produto").strip()
+    context_image = images[1] if len(images) > 1 else str(page.get("context_image_url") or "").strip()
+    if context_image == images[0]:
+        context_image = ""
     thumbs = []
     for index, image in enumerate(images):
         alt = f"{title} — imagem {index + 1}"
@@ -195,10 +198,20 @@ def gallery_html(product: dict) -> str:
             f'<img loading="lazy" src="{esc(image, quote=True)}" alt=""></button>'
         )
     main_alt = f"{title} — imagem 1"
+    context = ""
+    if context_image:
+        context = (
+            f'<img class="context-background" src="{esc(context_image, quote=True)}" alt="" '
+            'aria-hidden="true" onerror="this.style.display=\'none\'">'
+        )
+    thumbs_html = ""
+    if len(images) > 1:
+        thumbs_html = '<div class="thumbs" aria-label="Galeria do produto">' + "".join(thumbs) + '</div>'
     return (
-        '<div class="gallery"><div class="main-photo">'
-        f'<img data-gallery-main src="{esc(images[0], quote=True)}" alt="{esc(main_alt, quote=True)}">'
-        '</div><div class="thumbs" aria-label="Galeria do produto">' + "".join(thumbs) + '</div></div>'
+        '<div class="gallery"><div class="visual-stage">' + context +
+        '<div class="visual-overlay"></div><div class="main-photo">'
+        f'<img data-gallery-main fetchpriority="high" src="{esc(images[0], quote=True)}" alt="{esc(main_alt, quote=True)}">'
+        '</div></div>' + thumbs_html + '</div>'
     )
 
 
@@ -296,7 +309,7 @@ def render(template: str, product: dict, page: dict) -> str:
         "{{INTRO}}": esc(page["intro"]),
         "{{HERO_SUBTITLE}}": esc(hero_subtitle),
         "{{HERO_VISUAL_HTML}}": hero_visual_html(product, page),
-        "{{GALLERY_HTML}}": gallery_html(product),
+        "{{GALLERY_HTML}}": gallery_html(product, page),
         "{{OFFER_VISUAL_HTML}}": offer_visual_html(product),
         "{{HIGHLIGHTS_HTML}}": highlights_html(highlights),
         "{{BENEFIT_SECTION_HTML}}": benefit_section_html(benefit_cards),
